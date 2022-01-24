@@ -25,6 +25,7 @@ Since the launch targets include local paths, I don't think it makes sense to ha
 You will have to put your own arguments in there of course :)
 These configs will excise a full script folder and visually debug one AS file, respectively!
 
+```
 {
 	// Use IntelliSense to learn about possible attributes.
 	// Hover to view descriptions of existing attributes.
@@ -54,6 +55,7 @@ These configs will excise a full script folder and visually debug one AS file, r
 		}
 	]
 }
+```
 
 I usually try running the full parser target to see which files are breaking. Then I point the grammar target to that file and run it. After you see the errors, you can then start removing code from the file until only the thing that causes the error is left, and then start tweaking the grammar to fix it! Happy antlering!
 
