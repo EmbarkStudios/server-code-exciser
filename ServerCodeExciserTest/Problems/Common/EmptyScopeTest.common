@@ -1,0 +1,16 @@
+class UEmptyScopeTest
+{
+	void Test()
+	{
+		int SomethingBefore = 0;
+		SomethingBefore++;
+
+		if(System::IsServer())
+		{
+			// Don't actually add anything here.
+		}
+
+		int ButNotThis = 0;
+		ButNotThis++;
+	}
+};

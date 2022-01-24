@@ -1,0 +1,22 @@
+class USimpleDeclarationTest
+{
+	void Test()
+	{
+		int SomethingBefore = 0;
+		SomethingBefore++;
+
+		ensure(System::IsServer());
+#ifdef WITH_SERVER
+
+		float ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		while(true)
+		{
+			FString ThisAsWell = "Yep";
+		}
+
+		ThisMustBeGuarded++;
+#endif // WITH_SERVER
+	}
+};

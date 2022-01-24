@@ -1,0 +1,109 @@
+class UDeclarationInFunctionRootScopeWithReturnValTest
+{
+	enum EMyEnum
+	{
+		Blah,
+		Dah
+	};
+
+	bool TestBool()
+	{
+		ensure(System::IsServer());
+#ifdef WITH_SERVER
+
+		float ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		return ThisMustBeGuarded > 4.0f;
+#else
+		return false;
+#endif // WITH_SERVER
+	}
+
+	int TestInt()
+	{
+		ensure(System::IsServer());
+#ifdef WITH_SERVER
+
+		float ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		return int(ThisMustBeGuarded);
+#else
+		return 0;
+#endif // WITH_SERVER
+	}
+
+	float TestFloat()
+	{
+		ensure(System::IsServer());
+#ifdef WITH_SERVER
+
+		float ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		return ThisMustBeGuarded;
+#else
+		return 0.0f;
+#endif // WITH_SERVER
+	}
+
+	FString TestString()
+	{
+		ensure(System::IsServer());
+#ifdef WITH_SERVER
+
+		float ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		return "" + ThisMustBeGuarded;
+#else
+		return FString();
+#endif // WITH_SERVER
+	}
+
+	EMyEnum TestEnum()
+	{
+		ensure(System::IsServer());
+#ifdef WITH_SERVER
+
+		float ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		return EMyEnum::Blah;
+#else
+		return EMyEnum(0);
+#endif // WITH_SERVER
+	}
+
+	UObject TestObject()
+	{
+		ensure(System::IsServer());
+#ifdef WITH_SERVER
+
+		float ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		return SpawnActor<AActor>();
+#else
+		return nullptr;
+#endif // WITH_SERVER
+	}
+
+	TArray<const float> TestGeneric()
+	{
+		ensure(System::IsServer());
+#ifdef WITH_SERVER
+
+		float ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		TArray<const float> Out;
+		Out.Add(ThisMustBeGuarded);
+
+		return Out;
+#else
+		return TArray<const float>();
+#endif // WITH_SERVER
+	}
+};

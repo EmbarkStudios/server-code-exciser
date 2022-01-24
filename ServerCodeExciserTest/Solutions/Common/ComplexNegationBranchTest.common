@@ -1,0 +1,39 @@
+class UComplexBranchTest
+{
+	void Test()
+	{
+		int SomethingBefore = 0;
+		SomethingBefore++;
+
+		bool Mawp = false;
+
+		// This is the same as
+		// !System::IsServer() || !Mawp
+		if(!(System::IsServer() && Mawp))
+		{
+			float NotThis = 0.0f;
+			NotThis--;
+		}
+		
+		// This is the same as
+		// System::IsServer() && !Mawp
+		if(!(!System::IsServer() || Mawp))
+		{
+#ifdef WITH_SERVER
+			float This = 0.0f;
+			This--;
+#endif // WITH_SERVER
+		}
+		
+		// This is the same as
+		// !System::IsServer() && Mawp
+		if(!(System::IsServer() || !Mawp))
+		{
+			float NotThis = 0.0f;
+			NotThis--;
+		}
+
+		int NotThisEither = 0;
+		NotThisEither++;
+	}
+};

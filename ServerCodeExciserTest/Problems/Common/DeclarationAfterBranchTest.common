@@ -1,0 +1,22 @@
+class UDeclarationAfterBranchTest
+{
+	void Test()
+	{
+		int SomethingBefore = 0;
+		SomethingBefore++;
+
+		if(System::IsServer())
+		{
+			float ThisMustBeGuarded = 0.0f;
+			ThisMustBeGuarded--;
+		}
+
+		int ButNotThis = 0;
+		ButNotThis++;
+
+		ensure(System::IsServer(), "And this");
+
+		int ButThisToo = 0;
+		ButThisToo++;
+	}
+};

@@ -1,0 +1,29 @@
+class UEnsureNegationBranchTest
+{
+	void Test()
+	{
+		int SomethingBefore = 0;
+		SomethingBefore++;
+
+		// Then ensure here is inconsequential. Just think of the not as applying directly to IsServer.
+		if(!ensure(System::IsServer()))
+		{
+			int NotThis = 0;
+			NotThis++;
+		}
+		else
+		{
+			float ThisMustBeGuarded = 0.0f;
+			ThisMustBeGuarded--;
+		}
+
+		if(!ensure(System::IsServer()))
+		{
+			int NotThis = 0;
+			NotThis++;
+		}
+
+		int NotThisEither = 0;
+		NotThisEither++;
+	}
+};

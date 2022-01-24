@@ -1,0 +1,19 @@
+class UBranchAfterDeclarationTest
+{
+	void Test()
+	{
+		int SomethingBefore = 0;
+		SomethingBefore++;
+
+		ensure(System::IsServer(), "Yes");
+
+		if(System::IsServer())
+		{
+			float ThisMustBeGuarded = 0.0f;
+			ThisMustBeGuarded--;
+		}
+
+		int ThisToo = 0;
+		ThisToo++;
+	}
+};

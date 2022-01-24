@@ -1,0 +1,11 @@
+class UServerMetaUFunctionTest
+{
+	UFUNCTION(Server, Category = "Blah")
+	void Test()
+	{
+#ifdef WITH_SERVER
+		int SomethingBefore = 0;
+		SomethingBefore++;
+#endif // WITH_SERVER
+	}
+};

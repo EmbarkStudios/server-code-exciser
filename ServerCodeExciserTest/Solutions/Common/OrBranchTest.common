@@ -1,0 +1,18 @@
+class UOrBranchTest
+{
+	void Test()
+	{
+		int SomethingBefore = 0;
+		SomethingBefore++;
+
+		if(SomethingBefore > 42 || System::IsServer())
+		{
+			// This should not be guarded since the other condition could get us in here on the client. Scopes should only be guarded if it *requires* server.
+			float NotThis = 0.0f;
+			NotThis--;
+		}
+
+		int NotThisEither = 0;
+		NotThisEither++;
+	}
+};

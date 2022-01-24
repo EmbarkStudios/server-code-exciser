@@ -1,0 +1,9 @@
+class UServerMetaUFunctionTest
+{
+	UFUNCTION(Server, Category = "Blah")
+	void Test()
+	{
+		int SomethingBefore = 0;
+		SomethingBefore++;
+	}
+};

@@ -1,0 +1,16 @@
+class UOneLineReturnBranchTest
+{
+	int Test()
+	{
+		int SomethingBefore = 0;
+		SomethingBefore++;
+
+		if(System::IsServer())
+			return SomethingBefore++;
+
+		int ButNotThis = 0;
+		ButNotThis++;
+
+		return SomethingBefore;
+	}
+};

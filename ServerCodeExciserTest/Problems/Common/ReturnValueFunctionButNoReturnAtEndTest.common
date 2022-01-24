@@ -1,0 +1,19 @@
+class UReturnValueFunctionButNoReturnAtEndTest
+{
+	int Test()
+	{
+		ensure(System::IsServer());
+
+		float ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		if (ThisMustBeGuarded > 42)
+		{
+			return ThisMustBeGuarded;
+		}
+		else
+		{
+			return 0;
+		}
+	}
+};

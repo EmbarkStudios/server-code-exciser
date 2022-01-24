@@ -1,3 +1,19 @@
-/target
-**/*.rs.bk
-Cargo.lock
+# IDE
+.vs/
+.vscode/
+!.vscode/tasks.json
+
+# Build
+bin/
+obj/
+
+# Grammar
+UnrealAngelscriptParser/Grammar/*
+!UnrealAngelscriptParser/Grammar/UnrealAngelscriptLexer.g4
+!UnrealAngelscriptParser/Grammar/UnrealAngelscriptParser.g4
+!UnrealAngelscriptParser/Grammar/pom.xml
+
+# Input/Output
+Input/
+Output/
+Answers/

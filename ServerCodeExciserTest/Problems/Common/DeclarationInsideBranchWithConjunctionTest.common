@@ -1,0 +1,17 @@
+class UDeclarationInsideBranchWithConjunctionTest
+{
+	void Test()
+	{
+		int SomethingBefore = 0;
+		SomethingBefore++;
+
+		if(SomethingBefore > 42 && ensure(System::IsServer(), "Not Noice"))
+		{
+			float ThisMustBeGuarded = 0.0f;
+			ThisMustBeGuarded--;
+		}
+
+		int ButNotThis = 0;
+		ButNotThis++;
+	}
+};

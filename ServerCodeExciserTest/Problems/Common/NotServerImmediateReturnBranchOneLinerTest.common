@@ -1,0 +1,29 @@
+class UNotServerImmediateReturnBranchTest
+{
+	void Test()
+	{
+		int SomethingBefore = 0;
+		SomethingBefore++;
+
+		if(!System::IsServer())
+		{
+			// Don't apply this rule if the return is in a subscope.
+			if(SomethingBefore > 42)
+			{
+				return;
+			}
+		}
+
+		if(!System::IsServer())
+			return;
+		// Should be guarded from here
+		else
+		{
+			int This = 0;
+			This++;
+		}
+
+		int ThisToo = 0;
+		ThisToo++;
+	}
+};

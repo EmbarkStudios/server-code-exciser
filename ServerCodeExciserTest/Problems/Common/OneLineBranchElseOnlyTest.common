@@ -1,0 +1,27 @@
+class UBranchElseOneLineTest
+{
+	void Test()
+	{
+		int SomethingBefore = 0;
+		SomethingBefore++;
+
+		if(System::IsServer())
+		{
+			int This = 0;
+			This++;
+		}
+		else
+			SomethingBefore++;
+
+		if(!System::IsServer())
+		{
+			int NotThis = 0;
+			NotThis++;
+		}
+		else
+			SomethingBefore++;
+
+		int ButNotThis = 0;
+		ButNotThis++;
+	}
+};

@@ -1,0 +1,81 @@
+class UDeclarationInFunctionRootScopeWithReturnValTest
+{
+	enum EMyEnum
+	{
+		Blah,
+		Dah
+	};
+
+	bool TestBool()
+	{
+		ensure(System::IsServer());
+
+		float ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		return ThisMustBeGuarded > 4.0f;
+	}
+
+	int TestInt()
+	{
+		ensure(System::IsServer());
+
+		float ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		return int(ThisMustBeGuarded);
+	}
+
+	float TestFloat()
+	{
+		ensure(System::IsServer());
+
+		float ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		return ThisMustBeGuarded;
+	}
+
+	FString TestString()
+	{
+		ensure(System::IsServer());
+
+		float ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		return "" + ThisMustBeGuarded;
+	}
+
+	EMyEnum TestEnum()
+	{
+		ensure(System::IsServer());
+
+		float ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		return EMyEnum::Blah;
+	}
+
+	UObject TestObject()
+	{
+		ensure(System::IsServer());
+
+		float ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		return SpawnActor<AActor>();
+	}
+
+	TArray<const float> TestGeneric()
+	{
+		ensure(System::IsServer());
+
+		float ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		TArray<const float> Out;
+		Out.Add(ThisMustBeGuarded);
+
+		return Out;
+	}
+};

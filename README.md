@@ -4,31 +4,60 @@
 <!-- inline html -->
 <!-- markdownlint-disable-file MD033 -->
 
-<div align="center">
+# :u5272: Server Code Exciser
 
-<!--- FIXME: Pick an emoji and name your project! --->
-# 🌻 `opensource-template`
+<br/><br/>
 
 <!--- FIXME: Write short catchy description/tagline of project --->
-**Template for creating new open source repositories that follow the Embark open source guidelines**
+An antl4r based program that can automatically remove server only code from Unreal projects using Angelscript (https://angelscript.hazelight.se/)
 
-<!--- FIXME: Update crate, repo and CI workflow names here! Remove any that are not relevant --->
-    
+Thanks to Tom van Dijck for initiating this project and suggesting to use Antl4r as the base!
+
+# Setup
+I would strongly recommend using VSCode as that will give you the visual antl4r debugger. You need these extensions:
+* ANTLR4 grammar syntax support
+* C#
+
+Then, you should just have to open the _Grammar/AngelscriptParser.g4_ file and save it once to generate all the antl4r stuff.
+
+# Launch Settings
+Since the launch targets include local paths, I don't think it makes sense to have these checked in in project scope, so I'll just put some launch config templates here instead! <3
+You will have to put your own arguments in there of course :)
+These configs will excise a full script folder and visually debug one AS file, respectively!
+
+{
+	// Use IntelliSense to learn about possible attributes.
+	// Hover to view descriptions of existing attributes.
+	// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Excise Server Angelscript",
+			"type": "coreclr",
+			"request": "launch",
+			"preLaunchTask": "build",
+			"program": "${workspaceFolder}/ServerCodeExciser/bin/Debug/net5.0/ServerCodeExciser.exe",
+			"args": ["C:/Projects/MyProject/Script"],
+			"cwd": "${workspaceFolder}/ServerCodeExciser",
+			"console": "internalConsole",
+			"stopAtEntry": false
+		},
+		{
+			"name": "Debug Angelscript Grammar For Input",
+			"type": "antlr-debug",
+			"request": "launch",
+			"preLaunchTask": "build",
+			"grammar": "${workspaceFolder}/UnrealAngelscriptParser/Grammar/UnrealAngelscriptParser.g4",
+			"input": "C:/Projects/MyProject/Script/Foo.as",
+			"printParseTree": true,
+			"visualParseTree": true
+		}
+	]
+}
+
+I usually try running the full parser target to see which files are breaking. Then I point the grammar target to that file and run it. After you see the errors, you can then start removing code from the file until only the thing that causes the error is left, and then start tweaking the grammar to fix it! Happy antlering!
+
 [![Embark](https://img.shields.io/badge/embark-open%20source-blueviolet.svg)](https://embark.dev)
-[![Embark](https://img.shields.io/badge/discord-ark-%237289da.svg?logo=discord)](https://discord.gg/dAuKfZS)
-[![Crates.io](https://img.shields.io/crates/v/rust-gpu.svg)](https://crates.io/crates/rust-gpu)
-[![Docs](https://docs.rs/rust-gpu/badge.svg)](https://docs.rs/rust-gpu)
-[![dependency status](https://deps.rs/repo/github/EmbarkStudios/rust-gpu/status.svg)](https://deps.rs/repo/github/EmbarkStudios/rust-gpu)
-[![Build status](https://github.com/EmbarkStudios/physx-rs/workflows/CI/badge.svg)](https://github.com/EmbarkStudios/physx-rs/actions)
-</div>
-
-## TEMPLATE INSTRUCTIONS
-
-1. Create a new repository under EmbarkStudios using this template.
-1. __Title:__ Change the first line of this README to the name of your project, and replace the sunflower with an emoji that represents your project. 🚨 Your emoji selection is critical.
-1. __Badges:__ In the badges section above, change the repo name in each URL. If you are creating something other than a Rust crate, remove the crates.io and docs badges (and feel free to add more appropriate ones for your language).
-1. __CI:__ In `./github/workflows/` rename `rust-ci.yml` (or the appropriate config for your language) to `ci.yml`. And go over it and adapt it to work for your project
-1. __Cleanup:__ Remove this section of the README and any unused files (such as configs for other languages) from the repo.
 
 ## Contribution
 

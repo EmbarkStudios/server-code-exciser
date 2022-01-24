@@ -1,0 +1,22 @@
+class UConjunctiveNegativeBranchTest
+{
+	void Test()
+	{
+		int SomethingBefore = 0;
+		SomethingBefore++;
+
+		if(SomethingBefore > 42 && !System::IsServer())
+		{
+			int NotThis = 0;
+			NotThis++;
+		}
+		else
+		{
+			int NotThisEither = 0;
+			NotThisEither++;
+		}
+
+		int ButNotThis = 0;
+		ButNotThis++;
+	}
+};

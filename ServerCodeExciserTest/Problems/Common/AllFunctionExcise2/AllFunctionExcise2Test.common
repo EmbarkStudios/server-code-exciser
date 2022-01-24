@@ -1,0 +1,37 @@
+class UAllFunctionExcise2Test
+{
+	FString FunctionFive()
+	{
+		ensure(System::IsServer());
+
+		float ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		return "" + ThisMustBeGuarded;
+	}
+
+	EMyEnum FunctionSix()
+	{
+		float ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		return EMyEnum::Blah;
+	}
+
+	UObject FunctionSeven()
+	{
+		ensure(System::IsServer());
+
+		float ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		if (ThisMustBeGuarded > 0.0f)
+		{
+			return nullptr;
+		}
+		else
+		{
+			return SpawnActor<AActor>();
+		}
+	}
+};

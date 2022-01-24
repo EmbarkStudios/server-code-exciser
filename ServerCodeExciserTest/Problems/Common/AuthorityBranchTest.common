@@ -1,0 +1,17 @@
+class UAuthorityBranchTest
+{
+	void Test()
+	{
+		int SomethingBefore = 0;
+		SomethingBefore++;
+
+		if(Owner.HasAuthority())
+		{
+			float ThisMustBeGuarded = 0.0f;
+			ThisMustBeGuarded--;
+		}
+
+		int ButNotThis = 0;
+		ButNotThis++;
+	}
+};

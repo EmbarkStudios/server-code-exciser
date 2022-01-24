@@ -1,0 +1,24 @@
+class USimpleBranchTest
+{
+	void Test()
+	{
+		int SomethingBefore = 0;
+		SomethingBefore++;
+
+		if(System::IsServer())
+		{
+#ifdef WITH_SERVER
+			float ThisMustBeGuarded = 0.0f;
+			ThisMustBeGuarded--;
+#endif // WITH_SERVER
+		}
+		else
+		{
+			int NotThisThough = 0;
+			NotThisThough++;
+		}
+
+		int ButNotThis = 0;
+		ButNotThis++;
+	}
+};

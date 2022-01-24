@@ -1,0 +1,24 @@
+class UNestedBranchTest
+{
+	void Test()
+	{
+		int SomethingBefore = 0;
+		SomethingBefore++;
+
+		if (SomethingBefore > 10)
+		{
+			int NotThis = 0;
+
+			if(System::IsServer())
+			{
+				float ThisMustBeGuarded = 0.0f;
+				ThisMustBeGuarded--;
+			}
+
+			NotThis++;
+		}
+
+		int ButNotThis = 0;
+		ButNotThis++;
+	}
+};

@@ -1,0 +1,25 @@
+class USimpleBranchWithReturnTest
+{
+	float Test()
+	{
+		int SomethingBefore = 0;
+		SomethingBefore++;
+
+		if(System::IsServer())
+		{
+			float ThisMustBeGuarded = 0.0f;
+			ThisMustBeGuarded--;
+			return ThisMustBeGuarded;
+		}
+		else
+		{
+			int NotThisThough = 0;
+			NotThisThough++;
+		}
+
+		int ButNotThis = 0;
+		ButNotThis++;
+
+		return float(SomethingBefore);
+	}
+};

@@ -1,0 +1,68 @@
+class UAllFunctionExcise1Test
+{
+	void FunctionOne()
+	{
+		int SomethingBefore = 0;
+		SomethingBefore++;
+
+		ensure(System::IsServer());
+
+		float ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		while(true)
+		{
+			FString ThisAsWell = "Yep";
+		}
+
+		ThisMustBeGuarded++;
+	}
+
+	void FunctionTwo()
+	{
+		int SomethingBefore = 0;
+		SomethingBefore++;
+
+		if(System::IsServer())
+		{
+			float ThisMustBeGuarded = 0.0f;
+			ThisMustBeGuarded--;
+		}
+		else
+		{
+			int NotThisThough = 0;
+			NotThisThough++;
+		}
+
+		int ButNotThis = 0;
+		ButNotThis++;
+	}
+
+	void FunctionThree()
+	{
+		int SomethingBefore = 0;
+		SomethingBefore++;
+
+		if(SomethingBefore > 42)
+		{
+			float Nope = 0.0f;
+			Nope--;
+		}
+
+		if(SomethingBefore > 42)
+		{
+			float Nope = 0.0f;
+			Nope--;
+		}
+		else
+		{
+			int NotThisThough = 0;
+			NotThisThough++;
+		}
+
+		int ButNotThis = 0;
+		ButNotThis++;
+	}
+
+	void OneLineFunction() { }
+};

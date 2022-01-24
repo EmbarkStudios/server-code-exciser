@@ -1,0 +1,22 @@
+class UDeclarationInsideBranchTest
+{
+	void Test()
+	{
+		int SomethingBefore = 0;
+		SomethingBefore++;
+
+		if(ensure(!System::IsServer(), "Not Noice"))
+		{
+			int NotThis = 0;
+			NotThis++;
+		}
+		else
+		{
+			float ThisMustBeGuarded = 0.0f;
+			ThisMustBeGuarded--;
+		}
+
+		int ButNotThis = 0;
+		ButNotThis++;
+	}
+};

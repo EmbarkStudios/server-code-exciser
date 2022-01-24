@@ -1,0 +1,24 @@
+class UChainedBranchTest
+{
+	void Test()
+	{
+		int SomethingBefore = 0;
+		SomethingBefore++;
+
+		if(SomethingBefore > 42)
+		{
+			int NotThisEither = 0;
+			NotThisEither++;
+		}
+		else if(System::IsServer())
+		{
+#ifdef WITH_SERVER
+			int ThisThough = 0;
+			ThisThough++;
+#endif // WITH_SERVER
+		}
+
+		int ButNotThis = 0;
+		ButNotThis++;
+	}
+};

@@ -1,0 +1,40 @@
+class UReturnValueNestedTypeTest
+{
+	struct FMyStruct
+	{
+		int Blah;
+	};
+
+	class UMyClass
+	{
+		int Blah;
+	};
+
+	UReturnValueNestedTypeTest::FMyStruct TestStruct()
+	{
+		ensure(System::IsServer());
+#ifdef WITH_SERVER
+
+		float ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		return UReturnValueNestedTypeTest::FMyStruct();
+#else
+		return UReturnValueNestedTypeTest::FMyStruct();
+#endif // WITH_SERVER
+	}
+	
+	UReturnValueNestedTypeTest::UMyClass TestClass()
+	{
+		ensure(System::IsServer());
+#ifdef WITH_SERVER
+
+		float ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		return nullptr;
+#else
+		return nullptr;
+#endif // WITH_SERVER
+	}
+};
