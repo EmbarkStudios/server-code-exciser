@@ -2,249 +2,149 @@
 using System.IO;
 using UnrealAngelscriptServerCodeExcision;
 using ServerCodeExcisionCommon;
+using Spectre.Console.Cli;
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
+using Spectre.Console;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ServerCodeExcision
 {
-	public class ServerCodeExciser
-	{
-		public static void PrintHelp()
-		{
-			Console.WriteLine(
-@"Usage:
-ServerCodeExciser.exe {InputPath} [Switches]
+    internal sealed class ServerCodeExciserCommand : Command<ServerCodeExciserCommand.Settings>
+    {
+        public sealed class Settings : CommandSettings
+        {
+            [CommandOption("-o|--output <PATH>")]
+            [Description("The path we will write out output to. If no output folder is specified, excision will occur in-place.")]
+            public string? OutputPath { get; init; }
 
-Required arguments:
-{InputPath}:				This is the path to read input files from. For example the absolute path to your game's Script/ folder.
+            [CommandOption("-a|--exciseallfunctions <REGEX>")]
+            [Description("If this switch is specified, the next argument should be a string containing regex entries." +
+                "If any of these regexes matches the relative path of any file to be processed, all functions in the file will be fully excised. " +
+                "You can specify more than one entry by separating them with three pipes, eg: " +
+                "Characters/Paul/.*|||Weapons/Rife.as")]
+            public string? ExciseAllFunctionsRegexString { get; init; }
 
-Switches:
--output, -o:				Expects the next argument to be the path we will write out output to. If no output folder is specified, excision will occur in-place.
--exciseallfunctions, -eaf:	If this switch is specified, the next argument should be a string containing regex entries. 
-							If any of these regexes matches the relative path of any file to be processed, all functions in the file will be fully excised.
-							You can specify more than one entry by separating them with three pipes, eg:
-							Characters/Paul/.*|||Weapons/Rife.as
--fullyexcise, -fe:			If this switch is specified, the next argument should be a string containing regex entries. 
-							If any of these regexes matches the relative path of any file to be processed, the entire file will be excised.
-							You can specify more than one entry by separating them with three pipes, eg:
-							Characters/Paul/.*|||Weapons/Rife.as
--forcelang, -fl:			Disables language autodetection and forces a language to be used. Expects the next argument to be a valid language ID. Valid ID's are: { as }.
--dontskip, -ds:				Don't ever skip any files, even if they don't contain any server symbols.
--minratio, -mr:				Specify a ratio in percent as the next argument. If the excised % of code is less than this ratio, an error will be thrown. Good to detect catastrophic changes in excision performance.
--funcstats, -fs:			Outputs function stats instead of file stats. This is more accurate, but a lot slower, since it has to parse every file.
--unchanged, -u:				If the system should output unchanged files. Default is no.
--dryrun, -d:				Processes everything, but does not write any output to disk.
--help, -h:					Display this help text.
-");
-		}
+            [CommandOption("-f|--fullyexcise <REGEX>")]
+            [Description("If this switch is specified, the next argument should be a string containing regex entries." +
+                            "If any of these regexes matches the relative path of any file to be processed, the entire file will be excised." +
+                            "You can specify more than one entry by separating them with three pipes, eg: " +
+                            "Characters /Paul/.*|||Weapons/Rife.as")]
+            public string? FullExcisionRegexString { get; init; }
 
-		public static int Main(string[] args)
-		{
-			if (args.Length < 1)
-			{
-				Console.Error.WriteLine("You must provide an input path to read input files from as the first argument.");
-				return (int)EExciserReturnValues.BadInputPath;
-			}
+            [CommandOption("-s|--dontskip")]
+            [Description("Don't ever skip any files, even if they don't contain any server symbols.")]
+            public bool DontSkip { get; init; }
 
-			var parameters = new ServerCodeExcisionParameters(args[0]);
-			Console.WriteLine("Set input path to: " + parameters.InputPath);
-			if (!Directory.Exists(parameters.InputPath))
-			{
-				Console.Error.WriteLine("Input directory does not exist.");
-				return (int)EExciserReturnValues.BadInputPath;
-			}
+            [CommandOption("-m|--minratio")]
+            [Description("Specify a ratio in percent as the next argument. If the excised % of code is less than this ratio, an error will be thrown. Good to detect catastrophic changes in excision performance.")]
+            public int? RequiredExcisionRatio { get; init; } = -1;
 
-			for (int argIdx = 1; argIdx < args.Length; argIdx++)
-			{
-				string formattedArgument = args[argIdx].ToLowerInvariant();
-				switch (formattedArgument)
-				{
-					case "-output":
-					case "-o":
-					{
-						int outputPathIdx = argIdx + 1;
-						if(outputPathIdx > 1 && outputPathIdx < args.Length)
-						{
-							parameters.OutputPath = args[outputPathIdx];
-							Console.WriteLine("Set output path to: " + parameters.OutputPath);
-						}
-						else
-						{
-							Console.Error.WriteLine("Could not parse output path argument! You must enter a path after the switch!");
-							return (int)EExciserReturnValues.BadOutputPath;
-						}
+            [CommandOption("-t|--funcstats")]
+            [Description("Outputs function stats instead of file stats. This is more accurate, but a lot slower, since it has to parse every file.")]
+            public bool UseFunctionStats { get; init; }
 
-						argIdx++;
-						break;
-					}
+            [CommandOption("-u|--unchanged")]
+            [Description("If the system should output unchanged files. Default is no.")]
+            public bool ShouldOutputUntouchedFiles { get; init; }
 
-					case "-exciseallfunctions":
-					case "-eaf":
-					{
-						int aePathIdx = argIdx + 1;
-						if(aePathIdx > 1 && aePathIdx < args.Length)
-						{
-							parameters.ExciseAllFunctionsRegexString = args[aePathIdx];
-							Console.WriteLine("Set excise all functions string to: " + parameters.ExciseAllFunctionsRegexString);
-						}
-						else
-						{
-							Console.Error.WriteLine("Could not parse function excise string argument! You must enter a valid string after the switch!");
-							return (int)EExciserReturnValues.BadArgument;
-						}
+            [CommandOption("-d|--dryrun")]
+            [Description("Processes everything, but does not write any output to disk.")]
+            public bool IsDryRun { get; init; }
 
-						argIdx++;
-						break;
-					}
+            [CommandArgument(0, "[INPUT]")]
+            [Description("The input folder to excise.")]
+            public string InputPath { get; init; } = string.Empty;
 
-					case "-fullyexcise":
-					case "-fe":
-					{
-						int fePathIdx = argIdx + 1;
-						if(fePathIdx > 1 && fePathIdx < args.Length)
-						{
-							parameters.FullExcisionRegexString = args[fePathIdx];
-							Console.WriteLine("Set full excise string to: " + parameters.FullExcisionRegexString);
-						}
-						else
-						{
-							Console.Error.WriteLine("Could not parse full excise string argument! You must enter a string after the switch!");
-							return (int)EExciserReturnValues.BadArgument;
-						}
+            public override ValidationResult Validate()
+            {
+                if (InputPath.Length <= 0)
+                {
+                    return ValidationResult.Error("Must provide at least one input path!");
+                }
 
-						argIdx++;
-						break;
-					}
+                return base.Validate();
+            }
+        }
 
-					case "-forcelang":
-					case "-fl":
-					{
-						int flPathIdx = argIdx + 1;
-						if (flPathIdx > 1 && flPathIdx < args.Length)
-						{
-							switch (args[flPathIdx].ToLower().Trim())
-							{
-								case "as":
-								{
-									parameters.ExcisionLanguage = EExcisionLanguage.Angelscript;
-									break;
-								}
+        class RootPaths
+        {
+            [JsonPropertyName("AngelscriptScriptRoots")]
+            public string[] AngelscriptScriptRoots { get;set;} = Array.Empty<string>();
+        }
 
-								default:
-								{
-									Console.Error.WriteLine("Could not parse force language string argument! You must enter a valid language ID after the switch!");
-									return (int)EExciserReturnValues.BadArgument;
-								}
-							}
+        public override int Execute([NotNull] CommandContext context, [NotNull] Settings settings)
+        {
+            var parameters = new ServerCodeExcisionParameters();
+            parameters.OutputPath = settings.OutputPath ?? string.Empty;
+            parameters.ExciseAllFunctionsRegexString = settings.ExciseAllFunctionsRegexString ?? string.Empty;
+            parameters.FullExcisionRegexString = settings.FullExcisionRegexString ?? string.Empty;
+            parameters.ShouldOutputUntouchedFiles = settings.ShouldOutputUntouchedFiles;
+            parameters.IsDryRun = settings.ShouldOutputUntouchedFiles;
+            parameters.UseFunctionStats = settings.UseFunctionStats;
+            parameters.DontSkip = settings.DontSkip;
+            if (settings.RequiredExcisionRatio.HasValue)
+            {
+                parameters.RequiredExcisionRatio = settings.RequiredExcisionRatio.Value / 100.0f;
+            }
 
-							Console.WriteLine("Set forced excision language to: " + parameters.ExcisionLanguage);
-						}
-						else
-						{
-							Console.Error.WriteLine("Could not parse full excise string argument! You must enter a string after the switch!");
-							return (int)EExciserReturnValues.BadArgument;
-						}
+            if (File.Exists(settings.InputPath))
+            {
+                var desc = File.ReadAllText(settings.InputPath);
+                var paths = JsonSerializer.Deserialize<RootPaths>(desc);
+                if (paths != null)
+                { 
+                    parameters.InputPaths.UnionWith(paths.AngelscriptScriptRoots);
+                }
+                else
+                {
+                    AnsiConsole.WriteLine("Invalid json provided.");
+                    return (int)EExciserReturnValues.InternalExcisionError;
+                }
+            }
+            else if(!Directory.Exists(settings.InputPath))
+            {
+                AnsiConsole.WriteLine("Input directory does not exist.");
+                return (int)EExciserReturnValues.BadInputPath;
+            }
+            foreach (var path in parameters.InputPaths)
+            {
+                AnsiConsole.WriteLine("Input path: " + path);
+            }
 
-						argIdx++;
-						break;
-					}
+            // Make sure to clear the output.
+            if (Directory.Exists(parameters.OutputPath))
+            {
+                Directory.Delete(parameters.OutputPath, true);
+            }
 
-					case "-dontskip":
-					case "-ds":
-					{
-						parameters.DontSkip = true;
-						break;
-					}
+            try
+            {
+                var angelscriptServerCodeExciser = new ServerCodeExcisionProcessor(parameters);
+                return (int)angelscriptServerCodeExciser.ExciseServerCode("*.as", new UnrealAngelscriptServerCodeExcisionLanguage());
+            }
+            catch (Exception e)
+            {
+                AnsiConsole.WriteException(e);
+                return (int)EExciserReturnValues.InternalExcisionError;
+            }
+        }
+    }
 
-					case "-minratio":
-					case "-mr":
-					{
-						int ratioPathIdx = argIdx + 1;
-						if(ratioPathIdx > 1 && ratioPathIdx < args.Length && float.TryParse(args[ratioPathIdx], out parameters.RequiredExcisionRatio))
-						{
-							Console.WriteLine("Set full excise string to: " + parameters.FullExcisionRegexString);
-						}
-						else
-						{
-							Console.Error.WriteLine("Could not parse required ratio argument! You must enter a valid ratio float after the switch!");
-							return (int)EExciserReturnValues.BadArgument;
-						}
 
-						argIdx++;
-						break;
-					}
+    public class ServerCodeExciser
+    {
+        public static int Main(string[] args)
+        {
+            if (args.Length < 1)
+            {
+                Console.Error.WriteLine("You must provide an input path to read input files from as the first argument.");
+                return (int)EExciserReturnValues.BadInputPath;
+            }
 
-					case "-funcstats":
-					case "-fs":
-					{
-						parameters.UseFunctionStats = true;
-						break;
-					}
-
-					case "-unchanged":
-					case "-u":
-					{
-						parameters.ShouldOutputUntouchedFiles = true;
-						break;
-					}
-
-					case "-dryrun":
-					case "-d":
-					{
-						parameters.IsDryRun = true;
-						break;
-					}
-
-					case "-help":
-					case "-h":
-					default:
-					{
-						PrintHelp();
-						break;
-					}
-				}
-			}
-
-			// Make sure to clear the output.
-			if (Directory.Exists(parameters.OutputPath))
-			{
-				Directory.Delete(parameters.OutputPath, true);
-			}
-
-			if (parameters.ExcisionLanguage == EExcisionLanguage.Unknown)
-			{
-				// Try to autodetect the language
-				foreach (var filePath in Directory.EnumerateFiles(parameters.InputPath, "*.*", SearchOption.AllDirectories))
-				{
-					if (filePath.EndsWith(".as"))
-					{
-						// Found an AS file, let's assume AS.
-						parameters.ExcisionLanguage = EExcisionLanguage.Angelscript;
-						break;
-					}
-				}
-			}
-
-			try
-			{
-				switch (parameters.ExcisionLanguage)
-				{
-					case EExcisionLanguage.Angelscript:
-					{
-						var angelscriptServerCodeExciser = new ServerCodeExcisionProcessor(parameters);
-						return (int)angelscriptServerCodeExciser.ExciseServerCode("*.as", new UnrealAngelscriptServerCodeExcisionLanguage());
-					}
-
-					default:
-					{
-						Console.Error.WriteLine("ExcisionLanguage could not be parsed, and no language was forced. Aborting...");
-						return (int)EExciserReturnValues.UnknownExcisionLanguage;
-					}
-				}
-			}
-			catch (Exception e)
-			{
-				Console.Error.WriteLine("Internal error during excision: " + e.ToString());
-				return (int)EExciserReturnValues.InternalExcisionError;
-			}
-		}
-	}
+            var app = new CommandApp<ServerCodeExciserCommand>();
+            return app.Run(args);
+        }
+    }
 }

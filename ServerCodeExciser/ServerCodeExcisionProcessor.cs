@@ -8,302 +8,298 @@ using ServerCodeExcisionCommon;
 
 namespace ServerCodeExcision
 {
-	public struct ServerCodeExcisionParameters
-	{
-		public string InputPath;
-		public string OutputPath;
-		public string ExciseAllFunctionsRegexString;
-		public string FullExcisionRegexString;
-		public bool ShouldOutputUntouchedFiles;
-		public bool IsDryRun;
-		public bool UseFunctionStats;
-		public bool DontSkip;
-		public float RequiredExcisionRatio;
-		public EExcisionLanguage ExcisionLanguage;
+    public class ServerCodeExcisionParameters
+    {
+        public ISet<string> InputPaths { get; } = new HashSet<string>();
+        public string OutputPath { get; set; } = string.Empty;
+        public string ExciseAllFunctionsRegexString { get; set; } = string.Empty;
+        public string FullExcisionRegexString { get; set; } = string.Empty;
+        public bool ShouldOutputUntouchedFiles { get; set; } = false;
+        public bool IsDryRun { get; set; } = false;
+        public bool UseFunctionStats { get; set; } = false;
+        public bool DontSkip { get; set; } = false;
+        public float RequiredExcisionRatio { get; set; } = -1.0f;
+        public EExcisionLanguage ExcisionLanguage { get; set; } = EExcisionLanguage.Unknown;
+    }
 
-		public ServerCodeExcisionParameters(string inputPath)
-		{
-			InputPath = inputPath;
-			OutputPath = "";
-			ExciseAllFunctionsRegexString = "";
-			FullExcisionRegexString = "";
-			ShouldOutputUntouchedFiles = false;
-			IsDryRun = false;
-			UseFunctionStats = false;
-			DontSkip = false;
-			RequiredExcisionRatio = -1.0f;
-			ExcisionLanguage = EExcisionLanguage.Unknown;
-		}
-	}
+    public class ServerCodeExcisionProcessor
+    {
+        private ServerCodeExcisionParameters _parameters;
+        private List<Regex> _functionExciseRegexes;
+        private List<Regex> _fullyExciseRegexes;
 
-	public class ServerCodeExcisionProcessor
-	{
-		private ServerCodeExcisionParameters _parameters;
-		private List<Regex> _functionExciseRegexes; 
-		private List<Regex> _fullyExciseRegexes; 
+        public ServerCodeExcisionProcessor(ServerCodeExcisionParameters parameters)
+        {
+            _parameters = parameters;
 
-		public ServerCodeExcisionProcessor(ServerCodeExcisionParameters parameters)
-		{
-			_parameters = parameters;
+            _functionExciseRegexes = new List<Regex>();
+            if (_parameters.ExciseAllFunctionsRegexString != "")
+            {
+                var allFunctionExciseRegexStrings = _parameters.ExciseAllFunctionsRegexString.Split("|||");
+                foreach (var regexString in allFunctionExciseRegexStrings)
+                {
+                    _functionExciseRegexes.Add(new Regex(regexString));
+                    Console.WriteLine("Added all function excise regex: " + regexString);
+                }
+            }
 
-			_functionExciseRegexes = new List<Regex>();
-			if (_parameters.ExciseAllFunctionsRegexString != "")
-			{
-				var allFunctionExciseRegexStrings = _parameters.ExciseAllFunctionsRegexString.Split("|||");
-				foreach (var regexString in allFunctionExciseRegexStrings)
-				{
-					_functionExciseRegexes.Add(new Regex(regexString));
-					Console.WriteLine("Added all function excise regex: " + regexString);
-				}
-			}
+            _fullyExciseRegexes = new List<Regex>();
+            if (_parameters.FullExcisionRegexString != "")
+            {
+                var fullyExciseRegexStrings = _parameters.FullExcisionRegexString.Split("|||");
+                foreach (var regexString in fullyExciseRegexStrings)
+                {
+                    _fullyExciseRegexes.Add(new Regex(regexString));
+                    Console.WriteLine("Added fully excise regex: " + regexString);
+                }
+            }
+        }
 
-			_fullyExciseRegexes = new List<Regex>();
-			if (_parameters.FullExcisionRegexString != "")
-			{
-				var fullyExciseRegexStrings = _parameters.FullExcisionRegexString.Split("|||");
-				foreach (var regexString in fullyExciseRegexStrings)
-				{
-					_fullyExciseRegexes.Add(new Regex(regexString));
-					Console.WriteLine("Added fully excise regex: " + regexString);
-				}
-			}
-		}
-		
-		public EExciserReturnValues ExciseServerCode(string filePattern, IServerCodeExcisionLanguage excisionLanguage)
-		{
-			var startTime = DateTime.UtcNow;
-			var globalStats = new ExcisionStats();
+        public EExciserReturnValues ExciseServerCode(string filePattern, IServerCodeExcisionLanguage excisionLanguage)
+        {
+            var startTime = DateTime.UtcNow;
+            var globalStats = new ExcisionStats();
 
-			var options = new EnumerationOptions();
-			options.RecurseSubdirectories = true;
-			var allFiles = Directory.GetFiles(_parameters.InputPath, filePattern, options);
-			if (allFiles.Length < 1)
-			{
-				Console.Error.WriteLine("The input path did not contain any files, cannot excise!");
-				return EExciserReturnValues.InputPathEmpty;
-			}
+            var options = new EnumerationOptions();
+            options.RecurseSubdirectories = true;
+            foreach (var inputPath in _parameters.InputPaths)
+            {
+                var allFiles = Directory.GetFiles(inputPath, filePattern, options);
+                if (allFiles.Length < 1)
+                {
+                    Console.Error.WriteLine("The input path did not contain any files, cannot excise!");
+                    return EExciserReturnValues.InputPathEmpty;
+                }
 
-			for (int fileIdx = 0; fileIdx < allFiles.Length; fileIdx++)
-			{
-				var fileName = allFiles[fileIdx];
+                for (int fileIdx = 0; fileIdx < allFiles.Length; fileIdx++)
+                {
+                    var fileName = allFiles[fileIdx];
 
-				var relativePath = Path.GetRelativePath(_parameters.InputPath, fileName).Replace(@"\", "/");
-				var excisionMode = EExcisionMode.ServerOnlyScopes;
-				
-				// Should we full excise this file?
-				foreach (var fullExciseRegex in _fullyExciseRegexes)
-				{
-					if (fullExciseRegex.IsMatch(relativePath))
-					{
-						excisionMode = EExcisionMode.Full;
-						break;
-					}
-				}
+                    var relativePath = Path.GetRelativePath(inputPath, fileName).Replace(@"\", "/");
+                    var excisionMode = EExcisionMode.ServerOnlyScopes;
 
-				if (excisionMode == EExcisionMode.ServerOnlyScopes)
-				{
-					// Okay, then maybe we should be only excising functions..?
-					foreach (var allFunctionExciseRegex in _functionExciseRegexes)
-					{
-						if (allFunctionExciseRegex.IsMatch(relativePath))
-						{
-							excisionMode = EExcisionMode.AllFunctions;
-							break;
-						}
-					}
-				}
+                    // Should we full excise this file?
+                    foreach (var fullExciseRegex in _fullyExciseRegexes)
+                    {
+                        if (fullExciseRegex.IsMatch(relativePath))
+                        {
+                            excisionMode = EExcisionMode.Full;
+                            break;
+                        }
+                    }
 
-				var stats = ProcessCodeFile(fileName, excisionMode, excisionLanguage);
-				if (stats.CharactersExcised > 0)
-				{
-					System.Diagnostics.Debug.Assert(stats.TotalNrCharacters > 0, "Something is terribly wrong. We have excised characters, but no total characters..?");
-					var excisionRatio = (float)stats.CharactersExcised / (float)stats.TotalNrCharacters * 100.0f;
-					Console.WriteLine("Excised {0:0.00}% of server only code in file ({1}/{2}): {3}",
-							excisionRatio, fileIdx + 1, allFiles.Length, fileName);
-				}
-				else
-				{
-					Console.WriteLine("No server only code found in file ({0}/{1}): {2}", fileIdx + 1, allFiles.Length, fileName);
-				}
+                    if (excisionMode == EExcisionMode.ServerOnlyScopes)
+                    {
+                        // Okay, then maybe we should be only excising functions..?
+                        foreach (var allFunctionExciseRegex in _functionExciseRegexes)
+                        {
+                            if (allFunctionExciseRegex.IsMatch(relativePath))
+                            {
+                                excisionMode = EExcisionMode.AllFunctions;
+                                break;
+                            }
+                        }
+                    }
 
-				globalStats.CharactersExcised += stats.CharactersExcised;
-				globalStats.TotalNrCharacters += stats.TotalNrCharacters;
-			}
+                    try
+                    {
+                        var stats = ProcessCodeFile(fileName, inputPath, excisionMode, excisionLanguage);
+                        if (stats.CharactersExcised > 0)
+                        {
+                            System.Diagnostics.Debug.Assert(stats.TotalNrCharacters > 0, "Something is terribly wrong. We have excised characters, but no total characters..?");
+                            var excisionRatio = (float)stats.CharactersExcised / (float)stats.TotalNrCharacters * 100.0f;
+                            Console.WriteLine("Excised {0:0.00}% of server only code in file ({1}/{2}): {3}",
+                                    excisionRatio, fileIdx + 1, allFiles.Length, fileName);
+                        }
+                        else
+                        {
+                            Console.WriteLine("No server only code found in file ({0}/{1}): {2}", fileIdx + 1, allFiles.Length, fileName);
+                        }
 
-			var endTime = DateTime.UtcNow;
+                        globalStats.CharactersExcised += stats.CharactersExcised;
+                        globalStats.TotalNrCharacters += stats.TotalNrCharacters;
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("Failed to parse ({0}/{1}): {2}", fileIdx + 1, allFiles.Length, fileName);
+                    }
+                }
+            }
 
-			if (globalStats.CharactersExcised > 0)
-			{
-				System.Diagnostics.Debug.Assert(globalStats.TotalNrCharacters > 0, "Something is terribly wrong.");
-				var totalExcisionRatio = (float)globalStats.CharactersExcised / (float)globalStats.TotalNrCharacters * 100.0f;
-				Console.WriteLine("----------------------------");
-				Console.WriteLine("Excised {0:0.00}% ({1}/{2} characters) of server only code from the script files.",
-							totalExcisionRatio, globalStats.CharactersExcised, globalStats.TotalNrCharacters);
+            var endTime = DateTime.UtcNow;
 
-				var timeTaken = endTime - startTime;
-				Console.WriteLine("Excision took {0:0} hours, {1:0} minutes and {2:0.0} seconds.\n\n", timeTaken.Hours, timeTaken.Minutes, timeTaken.Seconds);
-				
-				if (_parameters.RequiredExcisionRatio > 0.0f && totalExcisionRatio < _parameters.RequiredExcisionRatio)
-				{
-					Console.Error.WriteLine("A required excision ratio of {0}% was set, but excision only reached {1}%!", _parameters.RequiredExcisionRatio, totalExcisionRatio);
-					return EExciserReturnValues.RequiredExcisionRatioNotReached;
-				}
-			}
-			else
-			{
-				Console.Error.WriteLine("The exciser ran, but nothing was actually excised. Something must have gone wrong.");
-				return EExciserReturnValues.NothingExcised;
-			}
+            if (globalStats.CharactersExcised > 0)
+            {
+                System.Diagnostics.Debug.Assert(globalStats.TotalNrCharacters > 0, "Something is terribly wrong.");
+                var totalExcisionRatio = (float)globalStats.CharactersExcised / (float)globalStats.TotalNrCharacters * 100.0f;
+                Console.WriteLine("----------------------------");
+                Console.WriteLine("Excised {0:0.00}% ({1}/{2} characters) of server only code from the script files.",
+                            totalExcisionRatio, globalStats.CharactersExcised, globalStats.TotalNrCharacters);
 
-			return EExciserReturnValues.Success;
-		}
+                var timeTaken = endTime - startTime;
+                Console.WriteLine("Excision took {0:0} hours, {1:0} minutes and {2:0.0} seconds.\n\n", timeTaken.Hours, timeTaken.Minutes, timeTaken.Seconds);
 
-		private ExcisionStats ProcessCodeFile(string fileName, EExcisionMode excisionMode, IServerCodeExcisionLanguage excisionLanguage)
-		{
-			var stats = new ExcisionStats();
+                if (_parameters.RequiredExcisionRatio > 0.0f && totalExcisionRatio < _parameters.RequiredExcisionRatio)
+                {
+                    Console.Error.WriteLine("A required excision ratio of {0}% was set, but excision only reached {1}%!", _parameters.RequiredExcisionRatio, totalExcisionRatio);
+                    return EExciserReturnValues.RequiredExcisionRatioNotReached;
+                }
+            }
+            else
+            {
+                Console.Error.WriteLine("The exciser ran, but nothing was actually excised. Something must have gone wrong.");
+                return EExciserReturnValues.NothingExcised;
+            }
 
-			var relativePath = Path.GetRelativePath(_parameters.InputPath, fileName);
-			var script = File.ReadAllText(fileName);
-			stats.TotalNrCharacters = script.Length;
+            return EExciserReturnValues.Success;
+        }
 
-			// Setup parsing and output.
-			List<KeyValuePair<int, string>> serverCodeInjections = new List<KeyValuePair<int, string>>();
-			var inputStream = new AntlrInputStream(script);
-			var lexer = excisionLanguage.CreateLexer(inputStream);
-			lexer.AddErrorListener(new ExcisionLexerErrorListener());
-			var commonTokenStream = new CommonTokenStream(lexer);
-			var parser = excisionLanguage.CreateParser(commonTokenStream);
-			var answerText = new StringBuilder();
-			answerText.Append(script);
+        private ExcisionStats ProcessCodeFile(string fileName, string inputPath, EExcisionMode excisionMode, IServerCodeExcisionLanguage excisionLanguage)
+        {
+            var stats = new ExcisionStats();
 
-			IServerCodeVisitor visitor = null;
-			if (excisionMode == EExcisionMode.Full)
-			{
-				// We want to excise this entire file.
-				serverCodeInjections.Add(new KeyValuePair<int, string>(0, excisionLanguage.ServerScopeStartString + "\r\n"));
-				serverCodeInjections.Add(new KeyValuePair<int, string>(script.Length, excisionLanguage.ServerScopeEndString));
-				stats.CharactersExcised += script.Length;
-			}
-			else if (excisionMode == EExcisionMode.AllFunctions)
-			{
-				// We want to excise all functions in this file no matter if there are any server symbols or not.
-				visitor = excisionLanguage.CreateFunctionVisitor(script);
-			}
-			else if (!_parameters.DontSkip && !excisionLanguage.AnyServerOnlySymbolsInScript(script))
-			{
-				// There are no interesting symbols in this script file. We should just skip it!
-				stats.CharactersExcised = 0;
-				if (_parameters.UseFunctionStats)
-				{
-					visitor = excisionLanguage.CreateSimpleVisitor(script);
-				}
-			}
-			else
-			{
-				// We want to excise all server only symbols in this file.
-				visitor = excisionLanguage.CreateSymbolVisitor(script);
-			}
+            var relativePath = Path.GetRelativePath(inputPath, fileName);
+            var script = File.ReadAllText(fileName);
+            stats.TotalNrCharacters = script.Length;
 
-			// Gather all the injections we want to make
-			if (visitor != null)
-			{
-				visitor.VisitContext(parser.GetParseTree());
-				if (_parameters.UseFunctionStats)
-				{
-					stats.TotalNrCharacters = visitor.TotalNumberOfFunctionCharactersVisited;
-				}
+            // Setup parsing and output.
+            List<KeyValuePair<int, string>> serverCodeInjections = new List<KeyValuePair<int, string>>();
+            var inputStream = new AntlrInputStream(script);
+            var lexer = excisionLanguage.CreateLexer(inputStream);
+            lexer.AddErrorListener(new ExcisionLexerErrorListener());
+            var commonTokenStream = new CommonTokenStream(lexer);
+            var parser = excisionLanguage.CreateParser(commonTokenStream);
+            var answerText = new StringBuilder();
+            answerText.Append(script);
 
-				// First process all server only scopes.
-				foreach (ServerOnlyScopeData currentScope in visitor.DetectedServerOnlyScopes)
-				{
-					if (currentScope.StartIndex == -1 
-						|| currentScope.StopIndex == -1
-						|| InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StartIndex, true, excisionLanguage.ServerScopeStartString)
-						|| InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StopIndex, false, excisionLanguage.ServerScopeEndString))
-					{
-						continue;
-					}
-					
-					// If there are already injected macros where we want to go, we should skip injecting.
-					System.Diagnostics.Debug.Assert(currentScope.StopIndex > currentScope.StartIndex, "There must be some invalid pattern here! Stop is before start!");
-					serverCodeInjections.Add(new KeyValuePair<int, string>(currentScope.StartIndex, excisionLanguage.ServerScopeStartString));
-					serverCodeInjections.Add(new KeyValuePair<int, string>(currentScope.StopIndex, currentScope.Opt_ElseContent + excisionLanguage.ServerScopeEndString));
-					stats.CharactersExcised += currentScope.StopIndex - currentScope.StartIndex;
-				}
+            IServerCodeVisitor? visitor = null;
+            if (excisionMode == EExcisionMode.Full)
+            {
+                // We want to excise this entire file.
+                serverCodeInjections.Add(new KeyValuePair<int, string>(0, excisionLanguage.ServerScopeStartString + "\r\n"));
+                serverCodeInjections.Add(new KeyValuePair<int, string>(script.Length, excisionLanguage.ServerScopeEndString));
+                stats.CharactersExcised += script.Length;
+            }
+            else if (excisionMode == EExcisionMode.AllFunctions)
+            {
+                // We want to excise all functions in this file no matter if there are any server symbols or not.
+                visitor = excisionLanguage.CreateFunctionVisitor(script);
+            }
+            else if (!_parameters.DontSkip && !excisionLanguage.AnyServerOnlySymbolsInScript(script))
+            {
+                // There are no interesting symbols in this script file. We should just skip it!
+                stats.CharactersExcised = 0;
+                if (_parameters.UseFunctionStats)
+                {
+                    visitor = excisionLanguage.CreateSimpleVisitor(script);
+                }
+            }
+            else
+            {
+                // We want to excise all server only symbols in this file.
+                visitor = excisionLanguage.CreateSymbolVisitor(script);
+            }
 
-				// Next we must add dummy reference variables if they exist.
-				foreach (KeyValuePair<int, HashSet<string>> dummyRefDataPair in visitor.ClassStartIdxDummyReferenceData)
-				{
-					var dummyRefDataBlockString = new StringBuilder("#ifndef " + excisionLanguage.ServerPrecompilerSymbol);
-					foreach (var dummyVarDef in dummyRefDataPair.Value)
-					{
-						dummyRefDataBlockString.Append("\r\n\t" + dummyVarDef);
-					}
+            // Gather all the injections we want to make
+            if (visitor != null)
+            {
+                visitor.VisitContext(parser.GetParseTree());
+                if (_parameters.UseFunctionStats)
+                {
+                    stats.TotalNrCharacters = visitor.TotalNumberOfFunctionCharactersVisited;
+                }
 
-					dummyRefDataBlockString.Append("\r\n" + excisionLanguage.ServerScopeEndString + "\r\n");
+                // First process all server only scopes.
+                foreach (ServerOnlyScopeData currentScope in visitor.DetectedServerOnlyScopes)
+                {
+                    if (currentScope.StartIndex == -1
+                        || currentScope.StopIndex == -1
+                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StartIndex, true, excisionLanguage.ServerScopeStartString)
+                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StopIndex, false, excisionLanguage.ServerScopeEndString))
+                    {
+                        continue;
+                    }
 
-					serverCodeInjections.Add(new KeyValuePair<int, string>(dummyRefDataPair.Key, dummyRefDataBlockString.ToString()));
-				}
-			}
+                    // If there are already injected macros where we want to go, we should skip injecting.
+                    System.Diagnostics.Debug.Assert(currentScope.StopIndex > currentScope.StartIndex, "There must be some invalid pattern here! Stop is before start!");
+                    serverCodeInjections.Add(new KeyValuePair<int, string>(currentScope.StartIndex, excisionLanguage.ServerScopeStartString));
+                    serverCodeInjections.Add(new KeyValuePair<int, string>(currentScope.StopIndex, currentScope.Opt_ElseContent + excisionLanguage.ServerScopeEndString));
+                    stats.CharactersExcised += currentScope.StopIndex - currentScope.StartIndex;
+                }
 
-			// Now sort them in the reverse order, since adding later will not affect earlier adds.
-			serverCodeInjections.Sort(delegate(KeyValuePair<int, string> pair1, KeyValuePair<int, string> pair2)
-			{
-				return pair2.Key.CompareTo(pair1.Key);
-			});
+                // Next we must add dummy reference variables if they exist.
+                foreach (KeyValuePair<int, HashSet<string>> dummyRefDataPair in visitor.ClassStartIdxDummyReferenceData)
+                {
+                    var dummyRefDataBlockString = new StringBuilder("#ifndef " + excisionLanguage.ServerPrecompilerSymbol);
+                    foreach (var dummyVarDef in dummyRefDataPair.Value)
+                    {
+                        dummyRefDataBlockString.Append("\r\n\t" + dummyVarDef);
+                    }
 
-			// Now insert them in that reversed order.
-			bool fileHasChanged = false;
-			foreach (var injection in serverCodeInjections)
-			{
-				answerText.Insert(injection.Key, injection.Value);
-				fileHasChanged = true;
-			}
+                    dummyRefDataBlockString.Append("\r\n" + excisionLanguage.ServerScopeEndString + "\r\n");
 
-			if (fileHasChanged || _parameters.ShouldOutputUntouchedFiles)
-			{
-				var outputPath = (_parameters.OutputPath != "") ? Path.Combine(_parameters.OutputPath, relativePath) : fileName;
-				var outputDirectoryPath = Path.GetDirectoryName(outputPath);
-				if (!Directory.Exists(outputDirectoryPath))
-				{
-					Directory.CreateDirectory(outputDirectoryPath);
-				}
+                    serverCodeInjections.Add(new KeyValuePair<int, string>(dummyRefDataPair.Key, dummyRefDataBlockString.ToString()));
+                }
+            }
 
-				try
-				{
-					if (!_parameters.IsDryRun)
-					{
-						if (File.Exists(outputPath))
-						{
-							// If the file exists, we might have to clear read-only from p4 etc. This is common for in-place excision.
-							File.SetAttributes(outputPath, FileAttributes.Normal);
-						}
+            // Now sort them in the reverse order, since adding later will not affect earlier adds.
+            serverCodeInjections.Sort(delegate (KeyValuePair<int, string> pair1, KeyValuePair<int, string> pair2)
+            {
+                return pair2.Key.CompareTo(pair1.Key);
+            });
 
-						File.WriteAllText(outputPath, answerText.ToString());
-					}
-				}
-				catch(Exception e)
-				{
-					Console.WriteLine(e.ToString());
-				}
-			}
+            // Now insert them in that reversed order.
+            bool fileHasChanged = false;
+            foreach (var injection in serverCodeInjections)
+            {
+                answerText.Insert(injection.Key, injection.Value);
+                fileHasChanged = true;
+            }
 
-			return stats;
-		}
+            if (fileHasChanged || _parameters.ShouldOutputUntouchedFiles)
+            {
+                var outputPath = (!string.IsNullOrEmpty(_parameters.OutputPath)) ? Path.Combine(_parameters.OutputPath, relativePath) : fileName;
+                var outputDirectoryPath = Path.GetDirectoryName(outputPath)!;
+                if (!Directory.Exists(outputDirectoryPath))
+                {
+                    Directory.CreateDirectory(outputDirectoryPath);
+                }
 
-		private bool InjectedMacroAlreadyExistsAtLocation(StringBuilder script, int index, bool lookAhead, string macro)
-		{
-			int startIndex = lookAhead ? index : (index - macro.Length);
-			int endIndex = lookAhead ? (index + macro.Length) : index;
+                try
+                {
+                    if (!_parameters.IsDryRun)
+                    {
+                        if (File.Exists(outputPath))
+                        {
+                            // If the file exists, we might have to clear read-only from p4 etc. This is common for in-place excision.
+                            File.SetAttributes(outputPath, FileAttributes.Normal);
+                        }
 
-			if (startIndex < 0 || startIndex >= script.Length
-				|| endIndex < 0 || endIndex >= script.Length)
-			{
-				return false;
-			}
+                        File.WriteAllText(outputPath, answerText.ToString());
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.ToString());
+                }
+            }
 
-			string scriptSection = script.ToString(startIndex, macro.Length);
-			return scriptSection == macro;
-		}
-	}
+            return stats;
+        }
+
+        private bool InjectedMacroAlreadyExistsAtLocation(StringBuilder script, int index, bool lookAhead, string macro)
+        {
+            int startIndex = lookAhead ? index : (index - macro.Length);
+            int endIndex = lookAhead ? (index + macro.Length) : index;
+
+            if (startIndex < 0 || startIndex >= script.Length
+                || endIndex < 0 || endIndex >= script.Length)
+            {
+                return false;
+            }
+
+            string scriptSection = script.ToString(startIndex, macro.Length);
+            return scriptSection == macro;
+        }
+    }
 }
