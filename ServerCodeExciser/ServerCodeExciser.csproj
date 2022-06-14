@@ -3,7 +3,12 @@
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
 		<TargetFramework>net5.0</TargetFramework>
+		<Nullable>enable</Nullable>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="Spectre.Console" Version="0.44.0" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\UnrealAngelscriptServerCodeExcision\UnrealAngelscriptServerCodeExcision.csproj" />

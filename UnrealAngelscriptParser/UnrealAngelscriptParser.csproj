@@ -13,8 +13,18 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Antlr4.Runtime.Standard" Version="4.9.3" />
-		<PackageReference Include="Antlr4BuildTasks" Version="8.17.0" />
+	  <None Remove="Grammar\UnrealAngelscriptLexer.g4" />
+	  <None Remove="Grammar\UnrealAngelscriptParser.g4" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Antlr4 Include="Grammar\UnrealAngelscriptLexer.g4" />
+	  <Antlr4 Include="Grammar\UnrealAngelscriptParser.g4" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Antlr4.Runtime.Standard" Version="4.10.1" />
+		<PackageReference Include="Antlr4BuildTasks" Version="10.7.0" />
 	</ItemGroup>
 
 </Project>
