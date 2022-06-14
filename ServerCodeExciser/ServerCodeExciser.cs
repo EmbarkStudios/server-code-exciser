@@ -54,7 +54,7 @@ namespace ServerCodeExcision
             public bool IsDryRun { get; init; }
 
             [CommandArgument(0, "[INPUT]")]
-            [Description("One or more input folders.")]
+            [Description("The input folder to excise.")]
             public string InputPath { get; init; } = string.Empty;
 
             public override ValidationResult Validate()
