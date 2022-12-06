@@ -1,13 +1,13 @@
-﻿using System;
-using System.IO;
-using UnrealAngelscriptServerCodeExcision;
-using ServerCodeExcisionCommon;
+﻿using ServerCodeExcisionCommon;
+using Spectre.Console;
 using Spectre.Console.Cli;
+using System;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using Spectre.Console;
+using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using UnrealAngelscriptServerCodeExcision;
 
 namespace ServerCodeExcision
 {
@@ -103,11 +103,16 @@ namespace ServerCodeExcision
                     return (int)EExciserReturnValues.InternalExcisionError;
                 }
             }
-            else if(!Directory.Exists(settings.InputPath))
+            else if(Directory.Exists(settings.InputPath))
+            {
+                parameters.InputPaths.Add(settings.InputPath);
+            }
+            else
             {
                 AnsiConsole.WriteLine("Input directory does not exist.");
                 return (int)EExciserReturnValues.BadInputPath;
             }
+
             foreach (var path in parameters.InputPaths)
             {
                 AnsiConsole.WriteLine("Input path: " + path);

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ServerCodeExciserTest": {
+      "commandName": "Project",
+      "workingDirectory": "D:\\EmbarkBuild\\ServerCodeExcision\\ServerCodeExciserTest"
+    }
+  }
+}

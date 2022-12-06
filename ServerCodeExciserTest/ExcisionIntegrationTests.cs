@@ -66,9 +66,9 @@ public class IntegrationTests
 		{
 			problemPath,
 			"-u",
-			"-fe",
+			"-f",
 			"FullExcise1/.*",
-			"-eaf",
+			"-a",
 			"AllFunctionExcise1/.*|||AllFunctionExcise2/.*",
 			"-o",
 			answerPath
