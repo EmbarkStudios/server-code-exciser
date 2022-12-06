@@ -103,11 +103,16 @@ namespace ServerCodeExcision
                     return (int)EExciserReturnValues.InternalExcisionError;
                 }
             }
-            else if(!Directory.Exists(settings.InputPath))
+            else if(Directory.Exists(settings.InputPath))
+            {
+                parameters.InputPaths.Add(settings.InputPath);
+            }
+            else
             {
                 AnsiConsole.WriteLine("Input directory does not exist.");
                 return (int)EExciserReturnValues.BadInputPath;
             }
+
             foreach (var path in parameters.InputPaths)
             {
                 AnsiConsole.WriteLine("Input path: " + path);
