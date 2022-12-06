@@ -8,6 +8,8 @@
 
 <br/><br/>
 
+[![ci](https://github.com/EmbarkStudios/server-code-exciser/actions/workflows/ci.yml/badge.svg)](https://github.com/EmbarkStudios/server-code-exciser/actions/workflows/ci.yml)
+
 <!--- FIXME: Write short catchy description/tagline of project --->
 An antl4r based program that can automatically remove server only code from Unreal projects using Angelscript (https://angelscript.hazelight.se/)
 
