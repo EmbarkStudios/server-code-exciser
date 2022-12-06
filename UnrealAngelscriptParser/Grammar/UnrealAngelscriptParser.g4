@@ -38,10 +38,10 @@ script:
 annotationList:
 	annotation (Comma annotation)*;
 
-annotation: 
+annotation:
 	Identifier (Assign expression)?;
 
-utype: 
+utype:
 	(UClass | UStruct) LeftParen annotationList? RightParen;
 
 uproperty:
@@ -57,7 +57,7 @@ moduleImport:
 
 asGeneric:
 	Identifier Less simpleTypeSpecifierList Greater;
-	
+
 simpleTypeSpecifierList:
 	declSpecifierSeq (Comma declSpecifierSeq)*;
 
@@ -300,7 +300,7 @@ emptyDeclaration: Semi;
 declSpecifier:
 	typeSpecifier
 	| functionSpecifier;
-	
+
 declSpecifierSeq: declSpecifier+?;
 
 functionSpecifier: Virtual;
@@ -338,6 +338,8 @@ simpleTypeSpecifier:
 	| UInt32
 	| UInt64
 	| Float
+	| Float32
+	| Float64
 	| Double
 	| Bool
 	| Void
