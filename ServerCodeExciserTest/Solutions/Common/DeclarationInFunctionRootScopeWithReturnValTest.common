@@ -67,12 +67,12 @@ class UDeclarationInFunctionRootScopeWithReturnValTest
 		ensure(System::IsServer());
 #ifdef WITH_SERVER
 
-		float64 ThisMustBeGuarded = 0.0f;
+		float64 ThisMustBeGuarded = 0.0;
 		ThisMustBeGuarded--;
 
 		return ThisMustBeGuarded;
 #else
-		return 0.0f;
+		return 0.0;
 #endif // WITH_SERVER
 	}
 
