@@ -71,6 +71,8 @@ UInt16: 'uint16';
 UInt32: 'uint32';
 UInt64: 'uint64';
 Float: 'float';
+Float32: 'float32';
+Float64: 'float64';
 Double: 'double';
 Bool: 'bool';
 

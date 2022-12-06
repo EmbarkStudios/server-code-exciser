@@ -36,6 +36,26 @@ class UDeclarationInFunctionRootScopeWithReturnValTest
 		return ThisMustBeGuarded;
 	}
 
+	float32 TestFloat32()
+	{
+		ensure(System::IsServer());
+
+		float32 ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		return ThisMustBeGuarded;
+	}
+
+	float64 TestFloat64()
+	{
+		ensure(System::IsServer());
+
+		float64 ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		return ThisMustBeGuarded;
+	}
+
 	FString TestString()
 	{
 		ensure(System::IsServer());
