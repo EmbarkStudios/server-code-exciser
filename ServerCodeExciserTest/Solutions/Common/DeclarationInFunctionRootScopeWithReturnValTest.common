@@ -34,7 +34,7 @@ class UDeclarationInFunctionRootScopeWithReturnValTest
 #endif // WITH_SERVER
 	}
 
-	float TestFloat()
+	double TestFloat()
 	{
 		ensure(System::IsServer());
 #ifdef WITH_SERVER
@@ -45,6 +45,34 @@ class UDeclarationInFunctionRootScopeWithReturnValTest
 		return ThisMustBeGuarded;
 #else
 		return 0.0f;
+#endif // WITH_SERVER
+	}
+
+	float32 TestFloat32()
+	{
+		ensure(System::IsServer());
+#ifdef WITH_SERVER
+
+		float32 ThisMustBeGuarded = 0.0f;
+		ThisMustBeGuarded--;
+
+		return ThisMustBeGuarded;
+#else
+		return 0.0f;
+#endif // WITH_SERVER
+	}
+
+	float64 TestFloat64()
+	{
+		ensure(System::IsServer());
+#ifdef WITH_SERVER
+
+		float64 ThisMustBeGuarded = 0.0;
+		ThisMustBeGuarded--;
+
+		return ThisMustBeGuarded;
+#else
+		return 0.0;
 #endif // WITH_SERVER
 	}
 
