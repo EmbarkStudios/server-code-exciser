@@ -11,4 +11,6 @@ jobs:
     - uses: actions/setup-dotnet@v3
       with:
         dotnet-version: '6.0.x'
-    - run: cd ServerCodeExciserTest | dotnet run ServerCodeExciserTest.csproj
+    - name: Run tests
+      run: dotnet run ServerCodeExciserTest.csproj
+      working-directory: ./ServerCodeExciserTest
