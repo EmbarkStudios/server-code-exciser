@@ -495,7 +495,10 @@ memberdeclaration:
 	| accessDeclaration;
 
 propertyDefinition:
-	uproperty? (accessSpecifier | accessPattern)? Default? declSpecifierSeq? (memberDeclaratorList | assignmentExpression)? Semi;
+	uproperty? (accessSpecifier | accessPattern)? Default? declSpecifierSeq? (memberDeclaratorList | assignmentList)? Semi;
+
+assignmentList:
+	assignmentExpression (Comma assignmentExpression)*;
 
 memberDeclaratorList:
 	memberDeclarator (Comma memberDeclarator)*;
