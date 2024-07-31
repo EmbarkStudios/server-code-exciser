@@ -444,7 +444,7 @@ parameterDeclaration:
 	declSpecifierSeq Identifier? (Assign initializerClause)?;
 
 functionDefinition:
-	ufunction? accessSpecifier? Mixin? declSpecifierSeq? declarator postFuncSpecifierSeq? functionBody;
+	ufunction? (accessSpecifier | accessPattern)? Mixin? declSpecifierSeq? declarator postFuncSpecifierSeq? functionBody;
 
 functionBody:
 	compoundStatement
@@ -491,10 +491,11 @@ memberdeclaration:
 	propertyDefinition
 	| functionDefinition
 	| aliasDeclaration
-	| emptyDeclaration;
+	| emptyDeclaration
+	| accessDeclaration;
 
 propertyDefinition:
-	uproperty? accessSpecifier? Default? declSpecifierSeq? (memberDeclaratorList | assignmentExpression)? Semi;
+	uproperty? (accessSpecifier | accessPattern)? Default? declSpecifierSeq? (memberDeclaratorList | assignmentExpression)? Semi;
 
 memberDeclaratorList:
 	memberDeclarator (Comma memberDeclarator)*;
@@ -531,6 +532,14 @@ classOrDeclType:
 baseTypeSpecifier: classOrDeclType;
 
 accessSpecifier: Private | Protected | Public;
+
+accessModifier: Inherited | EditDefaults | ReadOnly;
+
+accessModifiers: LeftParen accessModifier (Comma accessModifier)* RightParen;
+
+accessDeclaration: Access Identifier Assign accessSpecifier ((Comma Identifier accessModifiers?)* | (Comma Star accessModifiers)) Semi;
+
+accessPattern: Access Colon Identifier;
 
 /*Overloading*/
 
