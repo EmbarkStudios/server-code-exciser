@@ -80,6 +80,8 @@ Bool: 'bool';
 
 Auto: 'auto';
 
+Access: 'access';
+
 Break: 'break';
 
 Case: 'case';
@@ -98,6 +100,8 @@ Default: 'default';
 
 Do: 'do';
 
+EditDefaults: 'editdefaults';
+
 Else: 'else';
 
 Enum: 'enum';
@@ -114,6 +118,8 @@ Goto: 'goto';
 
 If: 'if';
 
+Inherited: 'inherited';
+
 Namespace: 'namespace';
 
 Nullptr: 'nullptr';
@@ -127,6 +133,8 @@ Private: 'private';
 Protected: 'protected';
 
 Public: 'public';
+
+ReadOnly: 'readonly';
 
 Return: 'return';
 
