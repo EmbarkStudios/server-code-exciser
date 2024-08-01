@@ -41,6 +41,9 @@ annotationList:
 annotation:
 	Identifier (Assign expression)?;
 
+uenum:
+	UEnum LeftParen annotationList? RightParen;
+
 utype:
 	(UClass | UStruct) LeftParen annotationList? RightParen;
 
@@ -367,10 +370,10 @@ enumSpecifier:
 	enumHead LeftBrace (enumeratorList Comma?)? RightBrace Semi?;
 
 enumHead:
-	enumkey (nestedNameSpecifier? Identifier)? enumbase?;
+	uenum? enumkey (nestedNameSpecifier? Identifier)? enumbase?;
 
 opaqueEnumDeclaration:
-	enumkey Identifier enumbase? Semi;
+	uenum? enumkey Identifier enumbase? Semi;
 
 enumkey: Enum;
 
