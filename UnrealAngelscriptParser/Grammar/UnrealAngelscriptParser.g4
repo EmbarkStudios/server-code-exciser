@@ -286,6 +286,8 @@ declaration:
 
 blockDeclaration:
 	simpleDeclaration
+	| classSpecifier
+	| enumSpecifier
 	| namespaceAliasDefinition
 	| aliasDeclaration
 	| opaqueEnumDeclaration;
@@ -307,10 +309,7 @@ functionSpecifier: Virtual;
 
 typedefName: Identifier;
 
-typeSpecifier:
-	trailingTypeSpecifier
-	| classSpecifier
-	| enumSpecifier;
+typeSpecifier: trailingTypeSpecifier;
 
 trailingTypeSpecifier:
 	simpleTypeSpecifier
@@ -365,7 +364,7 @@ elaboratedTypeSpecifier:
 enumName: Identifier;
 
 enumSpecifier:
-	enumHead LeftBrace (enumeratorList Comma?)? RightBrace;
+	enumHead LeftBrace (enumeratorList Comma?)? RightBrace Semi?;
 
 enumHead:
 	enumkey (nestedNameSpecifier? Identifier)? enumbase?;
@@ -473,7 +472,7 @@ bracedInitList: (LeftBrace|LeftBracket) (initializerList Comma?)? (RightBrace|Ri
 className: Identifier;
 
 classSpecifier:
-	classHead LeftBrace memberSpecification? RightBrace;
+	classHead LeftBrace memberSpecification? RightBrace Semi?;
 
 classHead:
 	utype? classKey (classHeadName classVirtSpecifier?)? baseClause?;
