@@ -44,6 +44,8 @@ UProperty: 'UPROPERTY';
 
 UFunction: 'UFUNCTION';
 
+UEnum: 'UENUM';
+
 Import: 'import';
 
 From: 'from';
