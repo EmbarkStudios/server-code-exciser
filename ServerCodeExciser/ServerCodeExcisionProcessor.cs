@@ -230,13 +230,21 @@ namespace ServerCodeExcision
                 // Next we must add dummy reference variables if they exist.
                 foreach (KeyValuePair<int, HashSet<string>> dummyRefDataPair in visitor.ClassStartIdxDummyReferenceData)
                 {
-                    var dummyRefDataBlockString = new StringBuilder("#ifndef " + excisionLanguage.ServerPrecompilerSymbol);
+                    var dummyRefDataBlockString = new StringBuilder();
+                    var dummyVarScope = "#ifndef " + excisionLanguage.ServerPrecompilerSymbol;
+                    dummyRefDataBlockString.Append(dummyVarScope);
                     foreach (var dummyVarDef in dummyRefDataPair.Value)
                     {
                         dummyRefDataBlockString.Append("\r\n\t" + dummyVarDef);
                     }
 
                     dummyRefDataBlockString.Append("\r\n" + excisionLanguage.ServerScopeEndString + "\r\n");
+
+                    // If there is already a block of dummy reference variables we skip adding new ones, there is no guarantee we are adding the right code.
+                    if (InjectedMacroAlreadyExistsAtLocation(answerText, dummyRefDataPair.Key, false, dummyVarScope + "\r\n"))
+                    {
+                        continue;
+                    }
 
                     serverCodeInjections.Add(new KeyValuePair<int, string>(dummyRefDataPair.Key, dummyRefDataBlockString.ToString()));
                 }
