@@ -16,6 +16,7 @@ namespace ServerCodeExcision
         public string FullExcisionRegexString { get; set; } = string.Empty;
         public bool ShouldOutputUntouchedFiles { get; set; } = false;
         public bool IsDryRun { get; set; } = false;
+        public bool Verify { get; set; } = false;
         public bool UseFunctionStats { get; set; } = false;
         public bool DontSkip { get; set; } = false;
         public float RequiredExcisionRatio { get; set; } = -1.0f;
@@ -127,6 +128,23 @@ namespace ServerCodeExcision
             }
 
             var endTime = DateTime.UtcNow;
+
+            // In verification mode error codes reverse the normal behavior of the exciser.
+            // Modifications required -> error
+            // No modifications required -> success
+            if (_parameters.Verify)
+            {
+                if (globalStats.CharactersExcised > 0)
+                {
+                    Console.Error.WriteLine("Executed in verification mode. Manual server code exicion is required.");
+                    return EExciserReturnValues.RequiresExcision;
+                }
+                else
+                {
+                    Console.WriteLine("Executed in verification mode. No modifications are required.");
+                    return EExciserReturnValues.Success;
+                }
+            }
 
             if (globalStats.CharactersExcised > 0)
             {

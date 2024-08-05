@@ -53,6 +53,10 @@ namespace ServerCodeExcision
             [Description("Processes everything, but does not write any output to disk.")]
             public bool IsDryRun { get; init; }
 
+            [CommandOption("-v|--verify")]
+            [Description("Verify that all analized code does not require modifications to excise server scopes.")]
+            public bool Verify { get; init; }
+
             [CommandArgument(0, "[INPUT]")]
             [Description("The input folder to excise.")]
             public string InputPath { get; init; } = string.Empty;
@@ -81,7 +85,8 @@ namespace ServerCodeExcision
             parameters.ExciseAllFunctionsRegexString = settings.ExciseAllFunctionsRegexString ?? string.Empty;
             parameters.FullExcisionRegexString = settings.FullExcisionRegexString ?? string.Empty;
             parameters.ShouldOutputUntouchedFiles = settings.ShouldOutputUntouchedFiles;
-            parameters.IsDryRun = settings.ShouldOutputUntouchedFiles;
+            parameters.IsDryRun = settings.IsDryRun || settings.ShouldOutputUntouchedFiles || settings.Verify;
+            parameters.Verify = settings.Verify;
             parameters.UseFunctionStats = settings.UseFunctionStats;
             parameters.DontSkip = settings.DontSkip;
             if (settings.RequiredExcisionRatio.HasValue)

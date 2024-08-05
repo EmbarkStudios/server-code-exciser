@@ -82,7 +82,8 @@ namespace ServerCodeExcisionCommon
 		UnknownExcisionLanguage,
 		NothingExcised,
 		InternalExcisionError,
-		RequiredExcisionRatioNotReached		
+		RequiredExcisionRatioNotReached,
+		RequiresExcision
 	}
 
 	public class ExcisionException : Exception
