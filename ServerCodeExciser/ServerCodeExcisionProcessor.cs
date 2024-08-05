@@ -136,7 +136,7 @@ namespace ServerCodeExcision
             {
                 if (globalStats.CharactersExcised > 0)
                 {
-                    Console.Error.WriteLine("Executed in verification mode. Manual server code exicion is required.");
+                    Console.Error.WriteLine("Executed in verification mode. Manual server code excision is required.");
                     return EExciserReturnValues.RequiresExcision;
                 }
                 else
