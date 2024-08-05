@@ -215,6 +215,7 @@ namespace ServerCodeExcision
                     if (currentScope.StartIndex == -1
                         || currentScope.StopIndex == -1
                         || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StartIndex, true, excisionLanguage.ServerScopeStartString)
+                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StartIndex, false, excisionLanguage.ServerScopeStartString)
                         || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StopIndex, false, excisionLanguage.ServerScopeEndString))
                     {
                         continue;
