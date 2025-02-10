@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using Antlr4.Runtime;
 
 namespace ServerCodeExcisionCommon
@@ -110,6 +111,7 @@ namespace ServerCodeExcisionCommon
 	public static class ExcisionUtils
 	{
 		private static char[] NewLineChars = { '\r', '\n' };
+		private static char[] SkippableScopeChars = { '\t', '\r', '\n' };
 
 		public static int FindScriptIndexForCodePoint(string script, int line, int column)
 		{
@@ -139,6 +141,24 @@ namespace ServerCodeExcisionCommon
 			}
 
 			return (linesTraversed == line) ? (cursor + column) : -1;
+		}
+
+		public static int ShrinkServerScope(string script, int start, int end)
+		{
+			bool skip = true;
+			while (skip)
+			{
+				skip = false;
+
+				int search = script.IndexOfAny(NewLineChars, start) + 2;
+				if ((search < end) && SkippableScopeChars.Contains<char>(script.ElementAt(search)))
+				{
+					skip = true;
+					++start;
+				}
+			}
+
+			return start;
 		}
 
 		public static Type FindFirstDirectChildOfType<Type>(Antlr4.Runtime.Tree.IParseTree currentContext)
