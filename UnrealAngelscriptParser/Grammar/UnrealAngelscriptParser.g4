@@ -445,7 +445,7 @@ theTypeId: typeSpecifierSeq;
 parameterDeclarationClause:	parameterDeclarationList;
 
 parameterDeclarationList:
-	parameterDeclaration (Comma parameterDeclaration)*;
+	parameterDeclaration (Comma parameterDeclaration )* Comma?;
 
 parameterDeclaration:
 	declSpecifierSeq Identifier? (Assign initializerClause)?;
