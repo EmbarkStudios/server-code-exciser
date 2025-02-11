@@ -230,8 +230,10 @@ statement:
 	);
 
 labeledStatement:
-	((Identifier | Case constantExpression) Colon statement)
-	| Default Colon statement?;
+	(Identifier
+		| Case constantExpression
+		| Default
+	) Colon statement?;
 
 expressionStatement: expression? Semi;
 
