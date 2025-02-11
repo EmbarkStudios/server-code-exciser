@@ -429,7 +429,9 @@ declaratorDef:
 	declaratorid | declaratorDef (parametersAndQualifiers | LeftBracket constantExpression? RightBracket);
 
 parametersAndQualifiers:
-	LeftParen parameterDeclarationClause? RightParen Const? refqualifier?;
+	LeftParen parameterDeclarationClause? RightParen thisModifier? refqualifier?;
+
+thisModifier: Const | AcceptTemporaryThis;
 
 refqualifier: And | AndAnd;
 

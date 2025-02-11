@@ -82,6 +82,8 @@ Bool: 'bool';
 
 Auto: 'auto';
 
+AcceptTemporaryThis: 'accept_temporary_this';
+
 Access: 'access';
 
 Break: 'break';
