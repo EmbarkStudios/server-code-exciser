@@ -46,6 +46,8 @@ UFunction: 'UFUNCTION';
 
 UEnum: 'UENUM';
 
+UMeta: 'UMETA';
+
 Import: 'import';
 
 From: 'from';

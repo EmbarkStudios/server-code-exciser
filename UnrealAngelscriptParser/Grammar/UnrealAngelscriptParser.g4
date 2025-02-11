@@ -44,6 +44,9 @@ annotation:
 uenum:
 	UEnum LeftParen annotationList? RightParen;
 
+umeta:
+	UMeta LeftParen annotationList? RightParen;
+
 utype:
 	(UClass | UStruct) LeftParen annotationList? RightParen;
 
@@ -382,7 +385,7 @@ enumbase: Colon typeSpecifierSeq;
 enumeratorList:
 	enumeratorDefinition (Comma enumeratorDefinition)*;
 
-enumeratorDefinition: enumerator (Assign constantExpression)?;
+enumeratorDefinition: enumerator (Assign constantExpression)? umeta?;
 
 enumerator: Identifier;
 
