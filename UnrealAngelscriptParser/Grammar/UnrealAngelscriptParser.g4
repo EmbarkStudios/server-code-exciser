@@ -432,7 +432,7 @@ declaratorDef:
 	declaratorid | declaratorDef (parametersAndQualifiers | LeftBracket constantExpression? RightBracket);
 
 parametersAndQualifiers:
-	LeftParen parameterDeclarationClause? RightParen thisModifier? refqualifier?;
+	LeftParen parameterDeclarationClause? RightParen thisModifier? refqualifier? NoDiscard?;
 
 thisModifier: Const | AcceptTemporaryThis;
 

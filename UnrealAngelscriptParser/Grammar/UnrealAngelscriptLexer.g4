@@ -128,6 +128,8 @@ Inherited: 'inherited';
 
 Namespace: 'namespace';
 
+NoDiscard: 'no_discard';
+
 Nullptr: 'nullptr';
 
 Operator: 'operator';
