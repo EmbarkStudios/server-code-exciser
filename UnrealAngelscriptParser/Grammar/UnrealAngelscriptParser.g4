@@ -233,7 +233,7 @@ labeledStatement:
 	(Identifier
 		| Case constantExpression
 		| Default
-	) Colon statement;
+	) Colon statement?;
 
 expressionStatement: expression? Semi;
 
