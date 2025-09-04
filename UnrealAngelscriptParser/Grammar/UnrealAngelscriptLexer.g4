@@ -357,5 +357,4 @@ Whitespace: [ \t]+ -> skip;
 Newline: ('\r' '\n'? | '\n') -> skip;
 BlockComment: '/*' .*? '*/' -> skip;
 LineComment: '//' ~ [\r\n]* -> skip;
-PreprocessorBranchRemoval: '#else' .*? '#endif' -> skip;
-Preprocessor: ('#if' | '#ifdef' | '#else' | '#endif') ~ [\r\n]* -> skip;
+Preprocessor: ('#if' | '#ifdef' | '#else' | '#endif') ~ [\r\n]*;

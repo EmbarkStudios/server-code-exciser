@@ -1,4 +1,4 @@
-﻿using ServerCodeExcisionCommon;
+using ServerCodeExcisionCommon;
 using Spectre.Console;
 using Spectre.Console.Cli;
 using System;
@@ -9,7 +9,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using UnrealAngelscriptServerCodeExcision;
 
-namespace ServerCodeExcision
+namespace ServerCodeExciser
 {
     internal sealed class ServerCodeExciserCommand : Command<ServerCodeExciserCommand.Settings>
     {
@@ -75,7 +75,7 @@ namespace ServerCodeExcision
         class RootPaths
         {
             [JsonPropertyName("AngelscriptScriptRoots")]
-            public string[] AngelscriptScriptRoots { get;set;} = Array.Empty<string>();
+            public string[] AngelscriptScriptRoots { get; set; } = Array.Empty<string>();
         }
 
         public override int Execute([NotNull] CommandContext context, [NotNull] Settings settings)
@@ -99,7 +99,7 @@ namespace ServerCodeExcision
                 var desc = File.ReadAllText(settings.InputPath);
                 var paths = JsonSerializer.Deserialize<RootPaths>(desc);
                 if (paths != null)
-                { 
+                {
                     parameters.InputPaths.UnionWith(paths.AngelscriptScriptRoots);
                 }
                 else
@@ -108,7 +108,7 @@ namespace ServerCodeExcision
                     return (int)EExciserReturnValues.InternalExcisionError;
                 }
             }
-            else if(Directory.Exists(settings.InputPath))
+            else if (Directory.Exists(settings.InputPath))
             {
                 parameters.InputPaths.Add(settings.InputPath);
             }
@@ -143,7 +143,7 @@ namespace ServerCodeExcision
     }
 
 
-    public class ServerCodeExciser
+    public class ServerCodeExciserProgram
     {
         public static int Main(string[] args)
         {

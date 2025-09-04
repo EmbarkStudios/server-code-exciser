@@ -1,12 +1,11 @@
+using Antlr4.Runtime;
+using ServerCodeExcisionCommon;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Text.RegularExpressions;
-using Antlr4.Runtime;
-using ServerCodeExcisionCommon;
 
-namespace ServerCodeExcision
+namespace ServerCodeExciser
 {
     public class ServerCodeExcisionParameters
     {
@@ -25,9 +24,10 @@ namespace ServerCodeExcision
 
     public class ServerCodeExcisionProcessor
     {
-        private ServerCodeExcisionParameters _parameters;
-        private List<Regex> _functionExciseRegexes;
-        private List<Regex> _fullyExciseRegexes;
+        private readonly ServerCodeExcisionParameters _parameters;
+        private readonly List<Regex> _functionExciseRegexes;
+        private readonly List<Regex> _fullyExciseRegexes;
+        private readonly List<string> _filesFailedToParse = new List<string>();
 
         public ServerCodeExcisionProcessor(ServerCodeExcisionParameters parameters)
         {
@@ -108,7 +108,7 @@ namespace ServerCodeExcision
                         if (stats.CharactersExcised > 0)
                         {
                             System.Diagnostics.Debug.Assert(stats.TotalNrCharacters > 0, "Something is terribly wrong. We have excised characters, but no total characters..?");
-                            var excisionRatio = (float)stats.CharactersExcised / (float)stats.TotalNrCharacters * 100.0f;
+                            var excisionRatio = stats.CharactersExcised / (float)stats.TotalNrCharacters * 100.0f;
                             Console.WriteLine("Excised {0:0.00}% of server only code in file ({1}/{2}): {3}",
                                     excisionRatio, fileIdx + 1, allFiles.Length, fileName);
                         }
@@ -122,7 +122,8 @@ namespace ServerCodeExcision
                     }
                     catch (Exception e)
                     {
-                        Console.WriteLine("Failed to parse ({0}/{1}): {2}", fileIdx + 1, allFiles.Length, fileName);
+                        Console.Error.WriteLine("Failed to parse ({0}/{1}): {2}", fileIdx + 1, allFiles.Length, fileName);
+                        _filesFailedToParse.Add(fileName);
                     }
                 }
             }
@@ -149,13 +150,18 @@ namespace ServerCodeExcision
             if (globalStats.CharactersExcised > 0)
             {
                 System.Diagnostics.Debug.Assert(globalStats.TotalNrCharacters > 0, "Something is terribly wrong.");
-                var totalExcisionRatio = (float)globalStats.CharactersExcised / (float)globalStats.TotalNrCharacters * 100.0f;
+                var totalExcisionRatio = globalStats.CharactersExcised / (float)globalStats.TotalNrCharacters * 100.0f;
                 Console.WriteLine("----------------------------");
                 Console.WriteLine("Excised {0:0.00}% ({1}/{2} characters) of server only code from the script files.",
                             totalExcisionRatio, globalStats.CharactersExcised, globalStats.TotalNrCharacters);
 
                 var timeTaken = endTime - startTime;
                 Console.WriteLine("Excision took {0:0} hours, {1:0} minutes and {2:0.0} seconds.\n\n", timeTaken.Hours, timeTaken.Minutes, timeTaken.Seconds);
+
+                foreach (var file in _filesFailedToParse)
+                {
+                    Console.Error.WriteLine($"Failed to parse: {file}");
+                }
 
                 if (_parameters.RequiredExcisionRatio > 0.0f && totalExcisionRatio < _parameters.RequiredExcisionRatio)
                 {
@@ -181,22 +187,18 @@ namespace ServerCodeExcision
             stats.TotalNrCharacters = script.Length;
 
             // Setup parsing and output.
-            List<KeyValuePair<int, string>> serverCodeInjections = new List<KeyValuePair<int, string>>();
+            var injections = new InjectionTable();
             var inputStream = new AntlrInputStream(script);
             var lexer = excisionLanguage.CreateLexer(inputStream);
             lexer.AddErrorListener(new ExcisionLexerErrorListener());
-            var commonTokenStream = new CommonTokenStream(lexer);
+            var commonTokenStream = new CommonTokenStream(new Preprocessor(lexer));
             var parser = excisionLanguage.CreateParser(commonTokenStream);
-            var answerText = new StringBuilder();
-            answerText.Append(script);
 
             IServerCodeVisitor? visitor = null;
             if (excisionMode == EExcisionMode.Full)
             {
-                // We want to excise this entire file.
-                serverCodeInjections.Add(new KeyValuePair<int, string>(0, excisionLanguage.ServerScopeStartString + "\r\n"));
-                serverCodeInjections.Add(new KeyValuePair<int, string>(script.Length, excisionLanguage.ServerScopeEndString));
-                stats.CharactersExcised += script.Length;
+                injections.Add(0, new Marker("A", true));
+                injections.Add(script.Length, new Marker("A", false));
             }
             else if (excisionMode == EExcisionMode.AllFunctions)
             {
@@ -230,62 +232,45 @@ namespace ServerCodeExcision
                 // First process all server only scopes.
                 foreach (ServerOnlyScopeData currentScope in visitor.DetectedServerOnlyScopes)
                 {
-                    if (currentScope.StartIndex == -1
-                        || currentScope.StopIndex == -1
-                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StartIndex, true, excisionLanguage.ServerScopeStartString)
-                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StartIndex, false, excisionLanguage.ServerScopeStartString)
-                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StopIndex, false, excisionLanguage.ServerScopeEndString))
-                    {
-                        continue;
-                    }
-
-                    // If there are already injected macros where we want to go, we should skip injecting.
-                    System.Diagnostics.Debug.Assert(currentScope.StopIndex > currentScope.StartIndex, "There must be some invalid pattern here! Stop is before start!");
-                    serverCodeInjections.Add(new KeyValuePair<int, string>(currentScope.StartIndex, excisionLanguage.ServerScopeStartString));
-                    serverCodeInjections.Add(new KeyValuePair<int, string>(currentScope.StopIndex, currentScope.Opt_ElseContent + excisionLanguage.ServerScopeEndString));
-                    stats.CharactersExcised += currentScope.StopIndex - currentScope.StartIndex;
+                    injections.Add(currentScope.StartLine, new Marker(currentScope.Context, true));
+                    injections.Add(currentScope.StopLine, new Marker(currentScope.Context, false, currentScope.Opt_ElseContent));
                 }
+            }
 
-                // Next we must add dummy reference variables if they exist.
-                foreach (KeyValuePair<int, HashSet<string>> dummyRefDataPair in visitor.ClassStartIdxDummyReferenceData)
+            // generate new script.
+            var builder = new ScriptBuilder();
+            using (var reader = new StringReader(script))
+            {
+                int lineIndex = 1;
+                for (; ; )
                 {
-                    var dummyRefDataBlockString = new StringBuilder();
-                    var dummyVarScope = "#ifndef " + excisionLanguage.ServerPrecompilerSymbol;
-                    dummyRefDataBlockString.Append(dummyVarScope);
-                    foreach (var dummyVarDef in dummyRefDataPair.Value)
+                    var line = reader.ReadLine();
+                    if (line == null)
+                        break;
+
+                    foreach (var text in injections.Get(lineIndex))
                     {
-                        dummyRefDataBlockString.Append("\r\n\t" + dummyVarDef);
+                        text.Write(builder);
                     }
 
-                    dummyRefDataBlockString.Append("\r\n" + excisionLanguage.ServerScopeEndString + "\r\n");
-
-                    // If there is already a block of dummy reference variables we skip adding new ones, there is no guarantee we are adding the right code.
-                    if (InjectedMacroAlreadyExistsAtLocation(answerText, dummyRefDataPair.Key, false, dummyVarScope + "\r\n"))
+                    if (line.Contains("UEmbarkServerEventsSubsystem::Get()") && !builder.IsInScope("WITH_SERVER"))
                     {
-                        continue;
+                        builder.AddLine("// The next line is server only code, but we cannot suggest a fix.");
                     }
 
-                    serverCodeInjections.Add(new KeyValuePair<int, string>(dummyRefDataPair.Key, dummyRefDataBlockString.ToString()));
+                    builder.AddLine(line);
+                    lineIndex++;
                 }
             }
 
-            // Now sort them in the reverse order, since adding later will not affect earlier adds.
-            serverCodeInjections.Sort(delegate (KeyValuePair<int, string> pair1, KeyValuePair<int, string> pair2)
-            {
-                return pair2.Key.CompareTo(pair1.Key);
-            });
-
-            // Now insert them in that reversed order.
-            bool fileHasChanged = false;
-            foreach (var injection in serverCodeInjections)
-            {
-                answerText.Insert(injection.Key, injection.Value);
-                fileHasChanged = true;
-            }
+            // detect changes.
+            var newText = builder.ToString();
+            bool fileHasChanged = newText != script;
 
             if (fileHasChanged || _parameters.ShouldOutputUntouchedFiles)
             {
-                var outputPath = (!string.IsNullOrEmpty(_parameters.OutputPath)) ? Path.Combine(_parameters.OutputPath, relativePath) : fileName;
+                stats.CharactersExcised = newText.Length - script.Length;
+                var outputPath = !string.IsNullOrEmpty(_parameters.OutputPath) ? Path.Combine(_parameters.OutputPath, relativePath) : fileName;
                 var outputDirectoryPath = Path.GetDirectoryName(outputPath)!;
                 if (!Directory.Exists(outputDirectoryPath))
                 {
@@ -302,7 +287,7 @@ namespace ServerCodeExcision
                             File.SetAttributes(outputPath, FileAttributes.Normal);
                         }
 
-                        File.WriteAllText(outputPath, answerText.ToString());
+                        File.WriteAllText(outputPath, newText);
                     }
                 }
                 catch (Exception e)
@@ -313,20 +298,7 @@ namespace ServerCodeExcision
 
             return stats;
         }
-
-        private bool InjectedMacroAlreadyExistsAtLocation(StringBuilder script, int index, bool lookAhead, string macro)
-        {
-            int startIndex = lookAhead ? index : (index - macro.Length);
-            int endIndex = lookAhead ? (index + macro.Length) : index;
-
-            if (startIndex < 0 || startIndex >= script.Length
-                || endIndex < 0 || endIndex >= script.Length)
-            {
-                return false;
-            }
-
-            string scriptSection = script.ToString(startIndex, macro.Length);
-            return scriptSection == macro;
-        }
     }
 }
+
+

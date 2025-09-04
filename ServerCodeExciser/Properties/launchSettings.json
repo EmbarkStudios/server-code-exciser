@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ServerCodeExciser": {
+      "commandName": "Project",
+      "commandLineArgs": "D:\\p4\\task\\Games\\Shared\\Plugins\\AIScript\\Script -o D:\\out"
+    }
+  }
+}

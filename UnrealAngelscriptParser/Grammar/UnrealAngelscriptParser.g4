@@ -499,7 +499,8 @@ memberdeclaration:
 	| functionDefinition
 	| aliasDeclaration
 	| emptyDeclaration
-	| accessDeclaration;
+	| accessDeclaration
+	| declarationseq;
 
 propertyDefinition:
 	uproperty? (accessSpecifier | accessPattern)? Default? declSpecifierSeq? (memberDeclaratorList | assignmentList)? Semi;

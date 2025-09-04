@@ -1,13 +1,13 @@
+using Antlr4.Runtime.Misc;
 using ServerCodeExcisionCommon;
 using System.Collections.Generic;
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace UnrealAngelscriptServerCodeExcision
 {
 	public class UnrealAngelscriptSymbolVisitor : UnrealAngelscriptSimpleVisitor
 	{
-		private IServerCodeExcisionLanguage _language;
+		private readonly IServerCodeExcisionLanguage _language;
 
 		public UnrealAngelscriptSymbolVisitor(string script, IServerCodeExcisionLanguage language)
 			: base(script)
@@ -43,7 +43,7 @@ namespace UnrealAngelscriptServerCodeExcision
 						}
 					}
 				}
-				
+
 				// Check to see if function name ends with _Server
 				for (int childIdx = 0; childIdx < context.ChildCount; childIdx++)
 				{
@@ -80,25 +80,25 @@ namespace UnrealAngelscriptServerCodeExcision
 			switch (IsExpressionServerOnly(conditionExpression))
 			{
 				case EExpressionType.ServerOnly:
-				{
-					// Index 4 is the control scope for ifs
-					AddDetectedScopeFromSelectionChild(context, 4);
-					break;
-				}
+					{
+						// Index 4 is the control scope for ifs
+						AddDetectedScopeFromSelectionChild(context, 4);
+						break;
+					}
 
 				case EExpressionType.EverythingAfterBranchIsServerOnly:
-				{
-					// We want to inject right after the if-branch child, and continue all the way to the end of the parent scope.
-					AddParentScopePostIfScope(context);
-					break;
-				}
+					{
+						// We want to inject right after the if-branch child, and continue all the way to the end of the parent scope.
+						AddParentScopePostIfScope(context);
+						break;
+					}
 
 				case EExpressionType.ElseIsServerOnly:
-				{
-					// Index 5 is the control scope for elses
-					AddDetectedScopeFromSelectionChild(context, 6);
-					break;
-				}
+					{
+						// Index 5 is the control scope for elses
+						AddDetectedScopeFromSelectionChild(context, 6);
+						break;
+					}
 
 				default:
 					break;
@@ -119,9 +119,7 @@ namespace UnrealAngelscriptServerCodeExcision
 					// We want to move in one step, since our reference scope is the lower one.
 					var returnData = GetDefaultReturnStatementForScope(selectionScope);
 
-					ServerOnlyScopeData newData = new ServerOnlyScopeData(
-					ExcisionUtils.FindScriptIndexForCodePoint(Script, selectionScope.Start.Line, selectionScope.Start.Column) + 1,
-					ExcisionUtils.FindScriptIndexForCodePoint(Script, selectionScope.Stop.Line, 0));
+					ServerOnlyScopeData newData = new ServerOnlyScopeData("A", selectionScope.Start.Line + 1, selectionScope.Stop.Line);
 
 					if (returnData.ReturnType != EReturnType.NoReturn)
 					{
@@ -141,9 +139,7 @@ namespace UnrealAngelscriptServerCodeExcision
 				var oneLineScope = context.GetChild(childIdx) as UnrealAngelscriptParser.StatementContext;
 				if (oneLineScope != null)
 				{
-					ServerOnlyScopeData newData = new ServerOnlyScopeData(
-						MoveOneLine(ExcisionUtils.FindScriptIndexForCodePoint(Script, oneLineScope.Start.Line, 0), false),
-						MoveOneLine(ExcisionUtils.FindScriptIndexForCodePoint(Script, oneLineScope.Stop.Line, oneLineScope.Stop.Column) + 1, true));
+					ServerOnlyScopeData newData = new ServerOnlyScopeData("B", oneLineScope.Start.Line, oneLineScope.Stop.Line);
 
 					// If there is a return statement at the end, we must replace it with a suitable replacement, or code will stop compiling.
 					// For one-liners, we actually remove the entire scope, which means we must replace it completely.
@@ -199,9 +195,7 @@ namespace UnrealAngelscriptServerCodeExcision
 			var parentScope = ExcisionUtils.FindParentContextOfType<UnrealAngelscriptParser.CompoundStatementContext>(context);
 			if (parentScope != null && ifScopeStopLine > 0 && ifScopeStopColumn > 0)
 			{
-				ServerOnlyScopeData newData = new ServerOnlyScopeData(
-					ExcisionUtils.FindScriptIndexForCodePoint(Script, ifScopeStopLine, ifScopeStopColumn) + 1,
-					ExcisionUtils.FindScriptIndexForCodePoint(Script, parentScope.Stop.Line, 0));
+				ServerOnlyScopeData newData = new ServerOnlyScopeData("C", ifScopeStopLine + 1, parentScope.Stop.Line);
 
 				// If there is a return statement at the end, we must replace it with a suitable replacement, or code will stop compiling.
 				var returnData = GetDefaultReturnStatementForScope(parentScope);
@@ -242,6 +236,32 @@ namespace UnrealAngelscriptServerCodeExcision
 			return curScriptIdx;
 		}
 
+		private bool IsAlreadyInServerScope(Antlr4.Runtime.Tree.IParseTree tree)
+		{
+			var parentScope = ExcisionUtils.FindParentContextOfType<UnrealAngelscriptParser.CompoundStatementContext>(tree);
+
+
+			return false;
+		}
+
+		public override UnrealAngelscriptNode VisitStatement([NotNull] UnrealAngelscriptParser.StatementContext context)
+		{
+			if (IsAlreadyInServerScope(context))
+			{
+				return base.VisitStatement(context);
+			}
+
+			var text = context.GetText().Trim();
+			if (MatchesAnyRegex(text, _language.ServerOnlySymbolRegexes))
+			{
+				ServerOnlyScopeData newData = new ServerOnlyScopeData("D", context.Start.Line, context.Stop.Line + 1);
+				DetectedServerOnlyScopes.Add(newData);
+			}
+
+			return base.VisitStatement(context);
+		}
+
+
 		public override UnrealAngelscriptNode VisitPostfixExpression(UnrealAngelscriptParser.PostfixExpressionContext context)
 		{
 			// In assert statements, we want to find the compound statement we ourselves belong to, and inject macros after ourselves.
@@ -259,13 +279,11 @@ namespace UnrealAngelscriptServerCodeExcision
 						// If there is a return statement at the end, we must replace it with a suitable replacement, or code will stop compiling.
 						var returnData = GetDefaultReturnStatementForScope(parentScope);
 
-						ServerOnlyScopeData newData = new ServerOnlyScopeData(
-							ExcisionUtils.FindScriptIndexForCodePoint(Script, simpleDeclaration.Stop.Line, simpleDeclaration.Stop.Column) + 1,
-							ExcisionUtils.FindScriptIndexForCodePoint(Script, parentScope.Stop.Line, 0));
+						ServerOnlyScopeData newData = new ServerOnlyScopeData("E", simpleDeclaration.Stop.Line + 1, parentScope.Stop.Line);
 
 						// We need to correct the start index to skip all the possible empty characters/new lines,
 						// if not we can miss the detection of a manually placed #ifdef
-						newData.StartIndex = ExcisionUtils.ShrinkServerScope(Script, newData.StartIndex, newData.StopIndex);
+						//newData.StartIndex = ExcisionUtils.ShrinkServerScope(Script, newData.StartIndex, newData.StopIndex);
 
 						if (returnData.ReturnType != EReturnType.NoReturn)
 						{
@@ -351,14 +369,14 @@ namespace UnrealAngelscriptServerCodeExcision
 					if (isExpressionSimple && selectionContext != null && selectionContext.ChildCount > 4)
 					{
 						var dummyReturnStatement = new StatementRun();
-						return IsLastStatementInScopeAReturn(selectionContext.GetChild(4), ref dummyReturnStatement) 
-										? EExpressionType.EverythingAfterBranchIsServerOnly 
+						return IsLastStatementInScopeAReturn(selectionContext.GetChild(4), ref dummyReturnStatement)
+										? EExpressionType.EverythingAfterBranchIsServerOnly
 										: EExpressionType.ElseIsServerOnly;
 					}
 				}
 				else
 				{
-					return EExpressionType.ServerOnly;	
+					return EExpressionType.ServerOnly;
 				}
 			}
 
@@ -393,7 +411,7 @@ namespace UnrealAngelscriptServerCodeExcision
 				}
 
 				var maybeChild = FindServerOnlySymbolTree(childTree);
-				if(maybeChild != null)
+				if (maybeChild != null)
 				{
 					return maybeChild;
 				}
@@ -403,7 +421,7 @@ namespace UnrealAngelscriptServerCodeExcision
 		}
 
 		private bool MatchesAnyRegex(string expression, List<string> Regexes)
-		{				
+		{
 			foreach (var serverOnlySymbolRegex in Regexes)
 			{
 				if (Regex.IsMatch(expression, serverOnlySymbolRegex))
