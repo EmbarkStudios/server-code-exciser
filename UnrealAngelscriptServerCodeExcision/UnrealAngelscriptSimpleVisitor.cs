@@ -282,10 +282,11 @@ namespace UnrealAngelscriptServerCodeExcision
                 return;
             }
 
+
             // If there is a return statement at the end, we must replace it with a suitable replacement, or code will stop compiling.
             var returnData = GetDefaultReturnStatementForScope(context);
 
-            ServerOnlyScopeData newData = new ServerOnlyScopeData("", context.Start.Line + 1, context.Stop.Line);
+            ServerOnlyScopeData newData = new ServerOnlyScopeData("F", context.Start.Line + 1, context.Stop.Line);
 
             if (returnData.ReturnType != EReturnType.NoReturn)
             {

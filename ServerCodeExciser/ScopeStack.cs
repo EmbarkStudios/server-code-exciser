@@ -7,6 +7,7 @@ namespace ServerCodeExciser
     {
         private Dictionary<string, int> m_scopes = new Dictionary<string, int>();
         private Stack<string> m_scope = new Stack<string>();
+        private int m_else = 0;
 
         public bool Push(string name)
         {
@@ -37,6 +38,14 @@ namespace ServerCodeExciser
             }
         }
 
+        public void Else(out string name)
+        {
+            name = m_scope.Pop();
+            m_scopes[name] -= 1;
+            var o = (name[0] == '!') ? name.Substring(1) : ("!" + name);
+            Push(o);
+        }
+
         public bool Pop(out string name)
         {
             if (m_scope.Count <= 0)
@@ -44,7 +53,6 @@ namespace ServerCodeExciser
                 name = string.Empty;
                 return false;
             }
-
             name = m_scope.Pop();
             m_scopes[name] -= 1;
             return m_scopes[name] == 0;

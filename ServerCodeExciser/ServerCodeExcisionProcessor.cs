@@ -191,14 +191,14 @@ namespace ServerCodeExciser
             var inputStream = new AntlrInputStream(script);
             var lexer = excisionLanguage.CreateLexer(inputStream);
             lexer.AddErrorListener(new ExcisionLexerErrorListener());
-            var commonTokenStream = new CommonTokenStream(lexer);
+            var commonTokenStream = new CommonTokenStream(new Preprocessor(lexer));
             var parser = excisionLanguage.CreateParser(commonTokenStream);
 
             IServerCodeVisitor? visitor = null;
             if (excisionMode == EExcisionMode.Full)
             {
-                injections.Add(0, excisionLanguage.ServerScopeStartString);
-                injections.Add(script.Length, excisionLanguage.ServerScopeEndString);
+                injections.Add(0, new Marker("A", true));
+                injections.Add(script.Length, new Marker("A", false));
             }
             else if (excisionMode == EExcisionMode.AllFunctions)
             {
@@ -232,16 +232,8 @@ namespace ServerCodeExciser
                 // First process all server only scopes.
                 foreach (ServerOnlyScopeData currentScope in visitor.DetectedServerOnlyScopes)
                 {
-                    if (string.IsNullOrEmpty(currentScope.Context))
-                    {
-                        injections.Add(currentScope.StartLine, excisionLanguage.ServerScopeStartString);
-                        injections.Add(currentScope.StopLine, excisionLanguage.ServerScopeEndString);
-                    }
-                    else
-                    {
-                        injections.Add(currentScope.StartLine, excisionLanguage.ServerScopeStartString + $" // {currentScope.Context}");
-                        injections.Add(currentScope.StopLine, excisionLanguage.ServerScopeEndString + $" // {currentScope.Context}");
-                    }
+                    injections.Add(currentScope.StartLine, new Marker(currentScope.Context, true));
+                    injections.Add(currentScope.StopLine, new Marker(currentScope.Context, false, currentScope.Opt_ElseContent));
                 }
             }
 
@@ -258,7 +250,7 @@ namespace ServerCodeExciser
 
                     foreach (var text in injections.Get(lineIndex))
                     {
-                        builder.AddLine(text);
+                        text.Write(builder);
                     }
 
                     if (line.Contains("UEmbarkServerEventsSubsystem::Get()") && !builder.IsInScope("WITH_SERVER"))
@@ -308,3 +300,5 @@ namespace ServerCodeExciser
         }
     }
 }
+
+

@@ -36,9 +36,9 @@ namespace ServerCodeExciser
             {
                 if (m_scope.Pop(out var name))
                 {
-                    name = name.Trim('!');
-                    m_scope.Push(name);
                     m_text.AppendLine($"#else // {name}");
+                    name = (name[0] == '!') ? name.Substring(1) : ("!" + name);
+                    m_scope.Push(name);
                 }
                 else
                 {
