@@ -1,150 +1,112 @@
-using System;
-using System.IO;
 using ServerCodeExcision;
 using ServerCodeExcisionCommon;
+using Spectre.Console;
+using System;
+using System.IO;
+using UnrealAngelscriptServerCodeExcision;
 
 public class IntegrationTests
 {
-	private static string TestProblemPath = @"Problems";
-	//private static string TestProblemPath = @"ProblemTestBed"; 
-	private static string TestAnswerPath = @"Answers";
-	private static string TestSolutionPath = @"Solutions";
+    private static string TestProblemPath = @"Problems";
+    private static string TestAnswerPath = @"Answers";
 
-	private static string CommonSubPath = @"Common";
-	private static string AngelscriptSubPath = @"Angelscript";
+    public static int Main(string[] args)
+    {
+        int numTestFailures = 0;
+        int numTestCases = 0;
 
-	public static void Main(string[] args)
-	{
-		ConsoleColor initialColor = Console.ForegroundColor;
-		bool excisionWasSuccessful = true;
-		int nrCorrectAnswers = 0;
-		int nrErrors = 0;
-		int nrProblems = 0;
+        try
+        {
+            // Run for Angelscript
+            var angelscriptResult = RunExciserIntegrationTests(
+                ".as",
+                Path.Combine(Environment.CurrentDirectory, TestProblemPath, "Angelscript"),
+                Path.Combine(Environment.CurrentDirectory, TestAnswerPath, "Angelscript"),
+                ref numTestFailures,
+                ref numTestCases);
 
-		var commonProblemPath = Path.Combine(TestProblemPath, CommonSubPath);
-		var commonSolutionPath = Path.Combine(TestSolutionPath, CommonSubPath);
+            // Run for "common"
+            var commonResult = RunExciserIntegrationTests(
+                ".common",
+                Path.Combine(Environment.CurrentDirectory, TestProblemPath, "Common"),
+                Path.Combine(Environment.CurrentDirectory, TestAnswerPath, "Common"),
+                ref numTestFailures,
+                ref numTestCases);
 
-		// Run for Angelscript
-		excisionWasSuccessful = excisionWasSuccessful && RunExciserIntegrationTests("as",
-			Path.Combine(TestProblemPath, AngelscriptSubPath),
-			Path.Combine(TestAnswerPath, AngelscriptSubPath),
-			Path.Combine(TestSolutionPath, AngelscriptSubPath),
-			commonProblemPath,
-			commonSolutionPath,
-			ref nrCorrectAnswers, ref nrErrors, ref nrProblems);
+            Console.WriteLine("----------------------------");
+            Console.WriteLine($"{numTestCases - numTestFailures} test(s) passed.");
+            Console.WriteLine($"{numTestFailures} test(s) failed.");
+        }
+        catch (Exception e)
+        {
+            AnsiConsole.WriteException(e);
+            return 1;
+        }
 
-		if (excisionWasSuccessful)
-		{
-			Console.ForegroundColor = initialColor;
-			Console.WriteLine("----------------------------");
-			Console.WriteLine(nrCorrectAnswers > 0 && nrCorrectAnswers == nrProblems 
-				? string.Format("{0} test(s) ran successfully.", nrCorrectAnswers)
-				: string.Format("{0} error(s) detected running {1} tests", nrErrors, nrProblems));
-		}
-	}
+        return numTestFailures == 0 ? 0 : 1;
+    }
 
-	private static bool RunExciserIntegrationTests(string fileExtension, string testProblemPath, string testAnswerPath, string testSolutionPath, string commonProblemPath, string commonSolutionPath, ref int nrCorrectAnswers, ref int nrErrors, ref int nrProblems)
-	{
-		string problemPath = Path.Combine(Environment.CurrentDirectory, testProblemPath);
-		string answerPath = Path.Combine(Environment.CurrentDirectory, testAnswerPath);
-		string solutionPath = Path.Combine(Environment.CurrentDirectory, testSolutionPath);
+    private static EExciserReturnValues RunExciserIntegrationTests(string fileExtension, string inputPath, string outputPath, ref int numTestFailures, ref int numTestCases)
+    {
+        // Clean up earlier answers.
+        if (Directory.Exists(outputPath))
+        {
+            Directory.Delete(outputPath, true);
+        }
 
-		// First copy common problems to their language folders and rename them so they are picked up by the exciser if they exist.
-		if (Directory.Exists(commonProblemPath) && Directory.Exists(commonSolutionPath))
-		{
-			CopyCommonTestFiles(fileExtension, problemPath, commonProblemPath);
-			CopyCommonTestFiles(fileExtension, solutionPath, commonSolutionPath);
-		}
+        string searchPattern = "*" + fileExtension.TrimStart('.');
 
-		// Clean up earlier answers.
-		if (Directory.Exists(answerPath))
-		{
-			Directory.Delete(answerPath, true);
-		}
+        EExciserReturnValues returnCode;
+        try
+        {
+            var excisionParams = new ServerCodeExcisionParameters
+            {
+                OutputPath = outputPath,
+                ShouldOutputUntouchedFiles = true,
+                FullExcisionRegexString = @"FullExcise1/.*",
+                ExciseAllFunctionsRegexString = @"AllFunctionExcise1/.*|||AllFunctionExcise2/.*",
+            };
+            excisionParams.InputPaths.Add(inputPath);
 
-		string[] exciserArgs = 
-		{
-			problemPath,
-			"-u",
-			"-f",
-			"FullExcise1/.*",
-			"-a",
-			"AllFunctionExcise1/.*|||AllFunctionExcise2/.*",
-			"-o",
-			answerPath
-		};
-		
-		var excisionReturnCode = (EExciserReturnValues)ServerCodeExciser.Main(exciserArgs);
-		if (excisionReturnCode != EExciserReturnValues.Success)
-		{
-			Console.Error.WriteLine("Excision error: " + excisionReturnCode);
-			return false;
-		}
-		
-		if (Directory.Exists(answerPath))
-		{
-			foreach (var answerFilePath in Directory.EnumerateFiles(answerPath, "*." + fileExtension, SearchOption.AllDirectories))
-			{
-				nrProblems++;
+            var angelscriptServerCodeExciser = new ServerCodeExcisionProcessor(excisionParams);
+            returnCode = angelscriptServerCodeExciser.ExciseServerCode(searchPattern, new UnrealAngelscriptServerCodeExcisionLanguage());
+            Console.WriteLine($"ExciseServerCode for {fileExtension} files returned: {returnCode}");
+        }
+        catch (Exception e)
+        {
+            AnsiConsole.WriteException(e);
+            return EExciserReturnValues.InternalExcisionError;
+        }
 
-				var relativePath = Path.GetRelativePath(answerPath, answerFilePath);
-				var solutionFilePath = Path.Combine(solutionPath, relativePath);
-				var fileName = Path.GetFileName(answerFilePath);
+        foreach (var answerFilePath in Directory.EnumerateFiles(outputPath, searchPattern, SearchOption.AllDirectories))
+        {
+            numTestCases++;
 
-				var answer = File.ReadAllText(answerFilePath);
-				var solution = File.ReadAllText(solutionFilePath);
+            var solutionFilePath = Path.Combine(inputPath, Path.GetRelativePath(outputPath, answerFilePath)) + ".solution";
 
-				if(answer == solution)
-				{
-					Console.ForegroundColor = ConsoleColor.Green;
-					Console.WriteLine(fileName + "'s answer matched the correct solution!");
-					nrCorrectAnswers++;
-				}
-				else
-				{
-					Console.ForegroundColor = ConsoleColor.Red;
-					Console.Error.WriteLine(fileName + "'s failed!");
-					nrErrors++;
-				}
-			}
-		}
-		else
-		{
-			Console.Error.WriteLine("No test answers found in path: " + answerPath);
-			return false;
-		}
+            var fileName = Path.GetFileName(answerFilePath);
+            var answer = File.ReadAllText(answerFilePath);
+            var solution = File.ReadAllText(solutionFilePath);
 
-		// Clean up common folders if it went well
-		CleanupTestFiles(problemPath);
-		CleanupTestFiles(solutionPath);
+            if (answer == solution)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine(fileName + " passed!");
+                Console.ForegroundColor = ConsoleColor.Gray;
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Error.WriteLine(fileName + " failed!");
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.WriteLine("--- Expected: ---");
+                Console.WriteLine(solution);
+                Console.WriteLine("--- Actual: ---");
+                Console.WriteLine(answer);
+                numTestFailures++;
+            }
+        }
 
-		return true;
-	}
-
-	private static void CopyCommonTestFiles(string fileExtension, string targetRootPath, string commonRootPath)
-	{
-		// First clear target problem path
-		CleanupTestFiles(targetRootPath);
-
-		var targetCommonPath = Path.Combine(targetRootPath, "Common");
-		foreach (var commonProblemFilePath in Directory.EnumerateFiles(commonRootPath, "*.*", SearchOption.AllDirectories))
-		{
-			var targetPath = Path.Combine(targetCommonPath, Path.GetRelativePath(commonRootPath, Path.ChangeExtension(commonProblemFilePath, fileExtension)));
-			var targetDirectory = Path.GetDirectoryName(targetPath);
-			if (targetDirectory != null)
-			{
-				Directory.CreateDirectory(targetDirectory);
-				File.Copy(commonProblemFilePath, targetPath);
-			}
-		}
-	}
-
-	private static void CleanupTestFiles(string targetRootPath)
-	{
-		var targetCommonPath = Path.Combine(targetRootPath, "Common");
-		if (Directory.Exists(targetCommonPath))
-		{
-			Directory.Delete(targetCommonPath, true);
-		}
+        return returnCode;
 	}
 }
