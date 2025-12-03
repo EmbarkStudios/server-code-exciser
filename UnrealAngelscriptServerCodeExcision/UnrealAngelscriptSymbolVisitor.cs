@@ -264,7 +264,7 @@ namespace UnrealAngelscriptServerCodeExcision
 
 						// We need to correct the start index to skip all the possible empty characters/new lines,
 						// if not we can miss the detection of a manually placed #ifdef
-						newData.StartIndex = ExcisionUtils.ShrinkServerScope(Script, newData.StartIndex, newData.StopIndex);
+						//newData.StartIndex = ExcisionUtils.ShrinkServerScope(Script, newData.StartIndex, newData.StopIndex);
 
 						if (returnData.ReturnType != EReturnType.NoReturn)
 						{

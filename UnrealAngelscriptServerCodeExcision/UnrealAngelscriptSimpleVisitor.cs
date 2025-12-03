@@ -168,16 +168,21 @@ namespace UnrealAngelscriptServerCodeExcision
 					// No, it was just a simple type, we'll use default values!
 					switch (simpleTypeContext.GetText())
 					{
-						case "float":	{ defaultReturnStatement = "return 0.0f;"; break; }
-						case "double":	{ defaultReturnStatement = "return 0.0;"; break; }
-						case "bool":	{ defaultReturnStatement = "return false;"; break; }
-
+						case "bool":
+							defaultReturnStatement = "return false;";
+							break;
+						case "float":
+						case "float32":
+							defaultReturnStatement = "return 0.0f;";
+							break;
+						case "double":
+						case "float64":
+							defaultReturnStatement = "return 0.0;";
+							break;
 						default:
-						{
 							// All kinds of different ints :)
 							defaultReturnStatement = "return 0;";
 							break;
-						}
 					}
 				}
 				
