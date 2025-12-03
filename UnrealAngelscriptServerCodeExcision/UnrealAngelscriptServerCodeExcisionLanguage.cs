@@ -1,5 +1,6 @@
-using System.Collections.Generic;
 using ServerCodeExcisionCommon;
+using System;
+using System.Collections.Generic;
 
 namespace UnrealAngelscriptServerCodeExcision
 {
@@ -10,6 +11,7 @@ namespace UnrealAngelscriptServerCodeExcision
 			@"^System::IsServer\(\)$",
 			@"^[A-z]+\.HasAuthority\(\)$"
 		};
+
 		public List<string> ServerOnlySymbolRegexes	{ get { return _angelscriptServerOnlySymbolRegexes; } }
 
 		private List<string> _angelscriptServerOnlySymbols = new List<string>
@@ -17,20 +19,25 @@ namespace UnrealAngelscriptServerCodeExcision
 			"hasauthority()",
 			"server"
 		};
+
 		public List<string> ServerOnlySymbols { get { return _angelscriptServerOnlySymbols; } }
 
 		public string ServerPrecompilerSymbol { get { return "WITH_SERVER"; } }
+
 		public string ServerScopeStartString { get { return "\r\n#ifdef " + ServerPrecompilerSymbol; } }
+
 		public string ServerScopeEndString { get { return "#endif // " + ServerPrecompilerSymbol + "\r\n"; } }
 
-		public Antlr4.Runtime.Lexer CreateLexer(Antlr4.Runtime.AntlrInputStream inputStream)
-		{
-			return new UnrealAngelscriptLexer(inputStream);
+		public T CreateLexer<T>(Antlr4.Runtime.AntlrInputStream inputStream)
+            where T : Antlr4.Runtime.Lexer
+        {
+			return (T)Activator.CreateInstance(typeof(T), inputStream);
 		}
 
-		public IServerCodeParser CreateParser(Antlr4.Runtime.CommonTokenStream tokenStream)
+		public T CreateParser<T>(Antlr4.Runtime.CommonTokenStream tokenStream)
+			where T : Antlr4.Runtime.Parser
 		{
-			return new UnrealAngelscriptServerCodeParser(tokenStream);
+			return (T)Activator.CreateInstance(typeof(T), tokenStream);
 		}
 
 		public IServerCodeVisitor CreateSimpleVisitor(string code)

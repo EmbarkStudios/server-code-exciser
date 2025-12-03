@@ -89,7 +89,10 @@ namespace ServerCodeExcisionCommon
 
 	public class ExcisionException : Exception
 	{
-		public ExcisionException(string excisionError, Exception innerException) : base(excisionError, innerException) {}
+		public ExcisionException(string excisionError, Exception innerException)
+			: base(excisionError, innerException)
+		{
+		}
 	}
 
 	public class ExcisionParserErrorListener : Antlr4.Runtime.IAntlrErrorListener<Antlr4.Runtime.IToken>

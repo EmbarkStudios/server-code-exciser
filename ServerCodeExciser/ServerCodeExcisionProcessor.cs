@@ -183,10 +183,12 @@ namespace ServerCodeExcision
             // Setup parsing and output.
             List<KeyValuePair<int, string>> serverCodeInjections = new List<KeyValuePair<int, string>>();
             var inputStream = new AntlrInputStream(script);
-            var lexer = excisionLanguage.CreateLexer(inputStream);
+            var lexer = excisionLanguage.CreateLexer<UnrealAngelscriptLexer>(inputStream);
             lexer.AddErrorListener(new ExcisionLexerErrorListener());
             var commonTokenStream = new CommonTokenStream(lexer);
-            var parser = excisionLanguage.CreateParser(commonTokenStream);
+            var parser = excisionLanguage.CreateParser<UnrealAngelscriptParser>(commonTokenStream);
+            parser.AddErrorListener(new ExcisionParserErrorListener());
+
             var answerText = new StringBuilder();
             answerText.Append(script);
 
@@ -221,7 +223,7 @@ namespace ServerCodeExcision
             // Gather all the injections we want to make
             if (visitor != null)
             {
-                visitor.VisitContext(parser.GetParseTree());
+                visitor.VisitContext(parser.script());
                 if (_parameters.UseFunctionStats)
                 {
                     stats.TotalNrCharacters = visitor.TotalNumberOfFunctionCharactersVisited;
