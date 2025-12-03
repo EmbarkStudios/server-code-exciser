@@ -262,10 +262,6 @@ namespace UnrealAngelscriptServerCodeExcision
 							ExcisionUtils.FindScriptIndexForCodePoint(Script, simpleDeclaration.Stop.Line, simpleDeclaration.Stop.Column) + 1,
 							ExcisionUtils.FindScriptIndexForCodePoint(Script, parentScope.Stop.Line, 0));
 
-						// We need to correct the start index to skip all the possible empty characters/new lines,
-						// if not we can miss the detection of a manually placed #ifdef
-						//newData.StartIndex = ExcisionUtils.ShrinkServerScope(Script, newData.StartIndex, newData.StopIndex);
-
 						if (returnData.ReturnType != EReturnType.NoReturn)
 						{
 							string scopeIndentation = BuildIndentationForColumnCount(simpleDeclaration.Start.Column);

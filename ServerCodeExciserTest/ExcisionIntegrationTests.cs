@@ -25,10 +25,6 @@ public class IntegrationTests
                 ref numTestFailures,
                 ref numTestCases);
 
-            Console.WriteLine("----------------------------");
-            Console.WriteLine($"{numTestCases} *.as test(s) executed.");
-            Console.WriteLine($"{numTestFailures} *.as test(s) failed.");
-
             // Run for "common"
             var commonResult = RunExciserIntegrationTests(
                 ".common",
@@ -38,8 +34,8 @@ public class IntegrationTests
                 ref numTestCases);
 
             Console.WriteLine("----------------------------");
-            Console.WriteLine($"{numTestCases} *.common test(s) executed.");
-            Console.WriteLine($"{numTestFailures} *.common test(s) failed.");
+            Console.WriteLine($"{numTestCases} test(s) executed.");
+            Console.WriteLine($"{numTestFailures} test(s) failed.");
         }
         catch (Exception e)
         {
@@ -58,7 +54,7 @@ public class IntegrationTests
             Directory.Delete(outputPath, true);
         }
 
-        string searchPattern = "*" + fileExtension.TrimStart('.');
+        string searchPattern = "*." + fileExtension.TrimStart('.');
         Console.WriteLine($"Running integration tests for {searchPattern} files...");
 
         EExciserReturnValues returnCode;

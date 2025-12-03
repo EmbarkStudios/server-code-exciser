@@ -203,7 +203,7 @@ namespace ServerCodeExcision
             {
                 // We want to excise this entire file.
                 serverCodeInjections.Add(new KeyValuePair<int, string>(0, excisionLanguage.ServerScopeStartString + "\r\n"));
-                serverCodeInjections.Add(new KeyValuePair<int, string>(script.Length, excisionLanguage.ServerScopeEndString));
+                serverCodeInjections.Add(new KeyValuePair<int, string>(script.Length, excisionLanguage.ServerScopeEndString + "\r\n"));
                 stats.CharactersExcised += script.Length;
             }
             else if (excisionMode == EExcisionMode.AllFunctions)
@@ -241,17 +241,17 @@ namespace ServerCodeExcision
                 {
                     if (currentScope.StartIndex == -1
                         || currentScope.StopIndex == -1
-                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StartIndex, true, excisionLanguage.ServerScopeStartString)
-                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StartIndex, false, excisionLanguage.ServerScopeStartString)
-                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StopIndex, false, excisionLanguage.ServerScopeEndString))
+                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StartIndex, true, true, excisionLanguage.ServerScopeStartString)
+                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StartIndex, false, false, excisionLanguage.ServerScopeStartString)
+                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StopIndex, false, false, excisionLanguage.ServerScopeEndString))
                     {
                         continue;
                     }
 
                     // If there are already injected macros where we want to go, we should skip injecting.
                     System.Diagnostics.Debug.Assert(currentScope.StopIndex > currentScope.StartIndex, "There must be some invalid pattern here! Stop is before start!");
-                    serverCodeInjections.Add(new KeyValuePair<int, string>(currentScope.StartIndex, excisionLanguage.ServerScopeStartString));
-                    serverCodeInjections.Add(new KeyValuePair<int, string>(currentScope.StopIndex, currentScope.Opt_ElseContent + excisionLanguage.ServerScopeEndString));
+                    serverCodeInjections.Add(new KeyValuePair<int, string>(currentScope.StartIndex, "\r\n" + excisionLanguage.ServerScopeStartString));
+                    serverCodeInjections.Add(new KeyValuePair<int, string>(currentScope.StopIndex, currentScope.Opt_ElseContent + excisionLanguage.ServerScopeEndString + "\r\n"));
                     stats.CharactersExcised += currentScope.StopIndex - currentScope.StartIndex;
                 }
 
@@ -266,10 +266,10 @@ namespace ServerCodeExcision
                         dummyRefDataBlockString.Append("\r\n\t" + dummyVarDef);
                     }
 
-                    dummyRefDataBlockString.Append("\r\n" + excisionLanguage.ServerScopeEndString + "\r\n");
+                    dummyRefDataBlockString.Append("\r\n" + excisionLanguage.ServerScopeEndString + "\r\n\r\n");
 
                     // If there is already a block of dummy reference variables we skip adding new ones, there is no guarantee we are adding the right code.
-                    if (InjectedMacroAlreadyExistsAtLocation(answerText, dummyRefDataPair.Key, false, dummyVarScope + "\r\n"))
+                    if (InjectedMacroAlreadyExistsAtLocation(answerText, dummyRefDataPair.Key, false, true, dummyVarScope + "\r\n"))
                     {
                         continue;
                     }
@@ -323,19 +323,47 @@ namespace ServerCodeExcision
             return stats;
         }
 
-        private bool InjectedMacroAlreadyExistsAtLocation(StringBuilder script, int index, bool lookAhead, string macro)
+        private static bool IsWhitespace(char c)
         {
-            int startIndex = lookAhead ? index : (index - macro.Length);
-            int endIndex = lookAhead ? (index + macro.Length) : index;
+            return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+        }
 
-            if (startIndex < 0 || startIndex >= script.Length
-                || endIndex < 0 || endIndex >= script.Length)
+        private bool InjectedMacroAlreadyExistsAtLocation(StringBuilder script, int index, bool lookAhead, bool ignoreWhitespace, string macro)
+        {
+            if (lookAhead)
             {
-                return false;
-            }
+                if (ignoreWhitespace)
+                {
+                    while (index < script.Length && IsWhitespace(script[index]))
+                    {
+                        index++;
+                    }
+                }
 
-            string scriptSection = script.ToString(startIndex, macro.Length);
-            return scriptSection == macro;
+                if (script.Length - index < macro.Length)
+                {
+                    return false;
+                }
+
+                return script.ToString(index, macro.Length).Equals(macro);
+            }
+            else
+            {
+                if (ignoreWhitespace)
+                {
+                    while (index > 0 && IsWhitespace(script[index]))
+                    {
+                        index--;
+                    }
+                }
+
+                if (index - macro.Length < 0)
+                {
+                    return false;
+                }
+
+                return script.ToString(index - macro.Length, macro.Length).Equals(macro);
+            }
         }
     }
 }

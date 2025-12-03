@@ -24,9 +24,9 @@ namespace UnrealAngelscriptServerCodeExcision
 
 		public string ServerPrecompilerSymbol { get { return "WITH_SERVER"; } }
 
-		public string ServerScopeStartString { get { return "\r\n#ifdef " + ServerPrecompilerSymbol; } }
+		public string ServerScopeStartString { get { return "#ifdef " + ServerPrecompilerSymbol; } }
 
-		public string ServerScopeEndString { get { return "#endif // " + ServerPrecompilerSymbol + "\r\n"; } }
+		public string ServerScopeEndString { get { return "#endif // " + ServerPrecompilerSymbol; } }
 
 		public T CreateLexer<T>(Antlr4.Runtime.AntlrInputStream inputStream)
             where T : Antlr4.Runtime.Lexer
