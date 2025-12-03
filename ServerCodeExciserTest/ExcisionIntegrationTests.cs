@@ -25,6 +25,10 @@ public class IntegrationTests
                 ref numTestFailures,
                 ref numTestCases);
 
+            Console.WriteLine("----------------------------");
+            Console.WriteLine($"{numTestCases} *.as test(s) executed.");
+            Console.WriteLine($"{numTestFailures} *.as test(s) failed.");
+
             // Run for "common"
             var commonResult = RunExciserIntegrationTests(
                 ".common",
@@ -34,8 +38,8 @@ public class IntegrationTests
                 ref numTestCases);
 
             Console.WriteLine("----------------------------");
-            Console.WriteLine($"{numTestCases - numTestFailures} test(s) passed.");
-            Console.WriteLine($"{numTestFailures} test(s) failed.");
+            Console.WriteLine($"{numTestCases} *.common test(s) executed.");
+            Console.WriteLine($"{numTestFailures} *.common test(s) failed.");
         }
         catch (Exception e)
         {
@@ -55,6 +59,7 @@ public class IntegrationTests
         }
 
         string searchPattern = "*" + fileExtension.TrimStart('.');
+        Console.WriteLine($"Running integration tests for {searchPattern} files...");
 
         EExciserReturnValues returnCode;
         try
@@ -65,17 +70,17 @@ public class IntegrationTests
                 ShouldOutputUntouchedFiles = true,
                 FullExcisionRegexString = @"FullExcise1/.*",
                 ExciseAllFunctionsRegexString = @"AllFunctionExcise1/.*|||AllFunctionExcise2/.*",
+                StrictMode = true,
             };
             excisionParams.InputPaths.Add(inputPath);
 
             var angelscriptServerCodeExciser = new ServerCodeExcisionProcessor(excisionParams);
             returnCode = angelscriptServerCodeExciser.ExciseServerCode(searchPattern, new UnrealAngelscriptServerCodeExcisionLanguage());
-            Console.WriteLine($"ExciseServerCode for {fileExtension} files returned: {returnCode}");
+            Console.WriteLine($"ExciseServerCode for {searchPattern} files returned: {returnCode}");
         }
-        catch (Exception e)
+        catch (Exception)
         {
-            AnsiConsole.WriteException(e);
-            return EExciserReturnValues.InternalExcisionError;
+            throw;
         }
 
         foreach (var answerFilePath in Directory.EnumerateFiles(outputPath, searchPattern, SearchOption.AllDirectories))

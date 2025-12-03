@@ -17,6 +17,7 @@ namespace ServerCodeExcision
         public bool ShouldOutputUntouchedFiles { get; set; } = false;
         public bool IsDryRun { get; set; } = false;
         public bool Verify { get; set; } = false;
+        public bool StrictMode { get; set; } = false;
         public bool UseFunctionStats { get; set; } = false;
         public bool DontSkip { get; set; } = false;
         public float RequiredExcisionRatio { get; set; } = -1.0f;
@@ -109,8 +110,7 @@ namespace ServerCodeExcision
                         {
                             System.Diagnostics.Debug.Assert(stats.TotalNrCharacters > 0, "Something is terribly wrong. We have excised characters, but no total characters..?");
                             var excisionRatio = (float)stats.CharactersExcised / (float)stats.TotalNrCharacters * 100.0f;
-                            Console.WriteLine("Excised {0:0.00}% of server only code in file ({1}/{2}): {3}",
-                                    excisionRatio, fileIdx + 1, allFiles.Length, fileName);
+                            Console.WriteLine("Excised {0:0.00}% of server only code in file ({1}/{2}): {3}", excisionRatio, fileIdx + 1, allFiles.Length, fileName);
                         }
                         else
                         {
@@ -120,9 +120,10 @@ namespace ServerCodeExcision
                         globalStats.CharactersExcised += stats.CharactersExcised;
                         globalStats.TotalNrCharacters += stats.TotalNrCharacters;
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         Console.WriteLine("Failed to parse ({0}/{1}): {2}", fileIdx + 1, allFiles.Length, fileName);
+                        throw;
                     }
                 }
             }
@@ -189,6 +190,11 @@ namespace ServerCodeExcision
             var parser = excisionLanguage.CreateParser<UnrealAngelscriptParser>(commonTokenStream);
             parser.AddErrorListener(new ExcisionParserErrorListener());
 
+            if (_parameters.StrictMode)
+            {
+                parser.ErrorHandler = new BailErrorStrategy();
+            }
+
             var answerText = new StringBuilder();
             answerText.Append(script);
 
@@ -224,6 +230,7 @@ namespace ServerCodeExcision
             if (visitor != null)
             {
                 visitor.VisitContext(parser.script());
+
                 if (_parameters.UseFunctionStats)
                 {
                     stats.TotalNrCharacters = visitor.TotalNumberOfFunctionCharactersVisited;

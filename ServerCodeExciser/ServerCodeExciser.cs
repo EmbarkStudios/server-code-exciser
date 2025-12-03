@@ -54,8 +54,12 @@ namespace ServerCodeExcision
             public bool IsDryRun { get; init; }
 
             [CommandOption("-v|--verify")]
-            [Description("Verify that all analized code does not require modifications to excise server scopes.")]
+            [Description("Verify that all analyzed code does not require modifications to excise server scopes.")]
             public bool Verify { get; init; }
+
+            [CommandOption("--strict")]
+            [Description("Ensure that all files can be analyzed without syntactic or lexicographical errors.")]
+            public bool StrictMode { get; init; }
 
             [CommandArgument(0, "[INPUT]")]
             [Description("The input folder to excise.")]
@@ -87,6 +91,7 @@ namespace ServerCodeExcision
             parameters.ShouldOutputUntouchedFiles = settings.ShouldOutputUntouchedFiles;
             parameters.IsDryRun = settings.IsDryRun || settings.ShouldOutputUntouchedFiles || settings.Verify;
             parameters.Verify = settings.Verify;
+            parameters.StrictMode = settings.StrictMode;
             parameters.UseFunctionStats = settings.UseFunctionStats;
             parameters.DontSkip = settings.DontSkip;
             if (settings.RequiredExcisionRatio.HasValue)
