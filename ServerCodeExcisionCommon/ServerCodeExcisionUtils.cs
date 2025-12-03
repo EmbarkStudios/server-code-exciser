@@ -89,7 +89,10 @@ namespace ServerCodeExcisionCommon
 
 	public class ExcisionException : Exception
 	{
-		public ExcisionException(string excisionError, Exception innerException) : base(excisionError, innerException) {}
+		public ExcisionException(string excisionError, Exception innerException)
+			: base(excisionError, innerException)
+		{
+		}
 	}
 
 	public class ExcisionParserErrorListener : Antlr4.Runtime.IAntlrErrorListener<Antlr4.Runtime.IToken>
@@ -141,24 +144,6 @@ namespace ServerCodeExcisionCommon
 			}
 
 			return (linesTraversed == line) ? (cursor + column) : -1;
-		}
-
-		public static int ShrinkServerScope(string script, int start, int end)
-		{
-			bool skip = true;
-			while (skip)
-			{
-				skip = false;
-
-				int search = script.IndexOfAny(NewLineChars, start) + 2;
-				if ((search < end) && SkippableScopeChars.Contains<char>(script.ElementAt(search)))
-				{
-					skip = true;
-					++start;
-				}
-			}
-
-			return start;
 		}
 
 		public static Type FindFirstDirectChildOfType<Type>(Antlr4.Runtime.Tree.IParseTree currentContext)

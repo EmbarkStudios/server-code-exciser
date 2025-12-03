@@ -17,6 +17,7 @@ namespace ServerCodeExcision
         public bool ShouldOutputUntouchedFiles { get; set; } = false;
         public bool IsDryRun { get; set; } = false;
         public bool Verify { get; set; } = false;
+        public bool StrictMode { get; set; } = false;
         public bool UseFunctionStats { get; set; } = false;
         public bool DontSkip { get; set; } = false;
         public float RequiredExcisionRatio { get; set; } = -1.0f;
@@ -109,8 +110,7 @@ namespace ServerCodeExcision
                         {
                             System.Diagnostics.Debug.Assert(stats.TotalNrCharacters > 0, "Something is terribly wrong. We have excised characters, but no total characters..?");
                             var excisionRatio = (float)stats.CharactersExcised / (float)stats.TotalNrCharacters * 100.0f;
-                            Console.WriteLine("Excised {0:0.00}% of server only code in file ({1}/{2}): {3}",
-                                    excisionRatio, fileIdx + 1, allFiles.Length, fileName);
+                            Console.WriteLine("Excised {0:0.00}% of server only code in file ({1}/{2}): {3}", excisionRatio, fileIdx + 1, allFiles.Length, fileName);
                         }
                         else
                         {
@@ -120,9 +120,10 @@ namespace ServerCodeExcision
                         globalStats.CharactersExcised += stats.CharactersExcised;
                         globalStats.TotalNrCharacters += stats.TotalNrCharacters;
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         Console.WriteLine("Failed to parse ({0}/{1}): {2}", fileIdx + 1, allFiles.Length, fileName);
+                        throw;
                     }
                 }
             }
@@ -183,10 +184,17 @@ namespace ServerCodeExcision
             // Setup parsing and output.
             List<KeyValuePair<int, string>> serverCodeInjections = new List<KeyValuePair<int, string>>();
             var inputStream = new AntlrInputStream(script);
-            var lexer = excisionLanguage.CreateLexer(inputStream);
+            var lexer = excisionLanguage.CreateLexer<UnrealAngelscriptLexer>(inputStream);
             lexer.AddErrorListener(new ExcisionLexerErrorListener());
             var commonTokenStream = new CommonTokenStream(lexer);
-            var parser = excisionLanguage.CreateParser(commonTokenStream);
+            var parser = excisionLanguage.CreateParser<UnrealAngelscriptParser>(commonTokenStream);
+            parser.AddErrorListener(new ExcisionParserErrorListener());
+
+            if (_parameters.StrictMode)
+            {
+                parser.ErrorHandler = new BailErrorStrategy();
+            }
+
             var answerText = new StringBuilder();
             answerText.Append(script);
 
@@ -195,7 +203,7 @@ namespace ServerCodeExcision
             {
                 // We want to excise this entire file.
                 serverCodeInjections.Add(new KeyValuePair<int, string>(0, excisionLanguage.ServerScopeStartString + "\r\n"));
-                serverCodeInjections.Add(new KeyValuePair<int, string>(script.Length, excisionLanguage.ServerScopeEndString));
+                serverCodeInjections.Add(new KeyValuePair<int, string>(script.Length, excisionLanguage.ServerScopeEndString + "\r\n"));
                 stats.CharactersExcised += script.Length;
             }
             else if (excisionMode == EExcisionMode.AllFunctions)
@@ -221,7 +229,8 @@ namespace ServerCodeExcision
             // Gather all the injections we want to make
             if (visitor != null)
             {
-                visitor.VisitContext(parser.GetParseTree());
+                visitor.VisitContext(parser.script());
+
                 if (_parameters.UseFunctionStats)
                 {
                     stats.TotalNrCharacters = visitor.TotalNumberOfFunctionCharactersVisited;
@@ -232,17 +241,17 @@ namespace ServerCodeExcision
                 {
                     if (currentScope.StartIndex == -1
                         || currentScope.StopIndex == -1
-                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StartIndex, true, excisionLanguage.ServerScopeStartString)
-                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StartIndex, false, excisionLanguage.ServerScopeStartString)
-                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StopIndex, false, excisionLanguage.ServerScopeEndString))
+                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StartIndex, true, true, excisionLanguage.ServerScopeStartString)
+                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StartIndex, false, false, excisionLanguage.ServerScopeStartString)
+                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StopIndex, false, false, excisionLanguage.ServerScopeEndString))
                     {
                         continue;
                     }
 
                     // If there are already injected macros where we want to go, we should skip injecting.
                     System.Diagnostics.Debug.Assert(currentScope.StopIndex > currentScope.StartIndex, "There must be some invalid pattern here! Stop is before start!");
-                    serverCodeInjections.Add(new KeyValuePair<int, string>(currentScope.StartIndex, excisionLanguage.ServerScopeStartString));
-                    serverCodeInjections.Add(new KeyValuePair<int, string>(currentScope.StopIndex, currentScope.Opt_ElseContent + excisionLanguage.ServerScopeEndString));
+                    serverCodeInjections.Add(new KeyValuePair<int, string>(currentScope.StartIndex, "\r\n" + excisionLanguage.ServerScopeStartString));
+                    serverCodeInjections.Add(new KeyValuePair<int, string>(currentScope.StopIndex, currentScope.Opt_ElseContent + excisionLanguage.ServerScopeEndString + "\r\n"));
                     stats.CharactersExcised += currentScope.StopIndex - currentScope.StartIndex;
                 }
 
@@ -257,10 +266,10 @@ namespace ServerCodeExcision
                         dummyRefDataBlockString.Append("\r\n\t" + dummyVarDef);
                     }
 
-                    dummyRefDataBlockString.Append("\r\n" + excisionLanguage.ServerScopeEndString + "\r\n");
+                    dummyRefDataBlockString.Append("\r\n" + excisionLanguage.ServerScopeEndString + "\r\n\r\n");
 
                     // If there is already a block of dummy reference variables we skip adding new ones, there is no guarantee we are adding the right code.
-                    if (InjectedMacroAlreadyExistsAtLocation(answerText, dummyRefDataPair.Key, false, dummyVarScope + "\r\n"))
+                    if (InjectedMacroAlreadyExistsAtLocation(answerText, dummyRefDataPair.Key, false, true, dummyVarScope + "\r\n"))
                     {
                         continue;
                     }
@@ -314,19 +323,47 @@ namespace ServerCodeExcision
             return stats;
         }
 
-        private bool InjectedMacroAlreadyExistsAtLocation(StringBuilder script, int index, bool lookAhead, string macro)
+        private static bool IsWhitespace(char c)
         {
-            int startIndex = lookAhead ? index : (index - macro.Length);
-            int endIndex = lookAhead ? (index + macro.Length) : index;
+            return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+        }
 
-            if (startIndex < 0 || startIndex >= script.Length
-                || endIndex < 0 || endIndex >= script.Length)
+        private bool InjectedMacroAlreadyExistsAtLocation(StringBuilder script, int index, bool lookAhead, bool ignoreWhitespace, string macro)
+        {
+            if (lookAhead)
             {
-                return false;
-            }
+                if (ignoreWhitespace)
+                {
+                    while (index < script.Length && IsWhitespace(script[index]))
+                    {
+                        index++;
+                    }
+                }
 
-            string scriptSection = script.ToString(startIndex, macro.Length);
-            return scriptSection == macro;
+                if (script.Length - index < macro.Length)
+                {
+                    return false;
+                }
+
+                return script.ToString(index, macro.Length).Equals(macro);
+            }
+            else
+            {
+                if (ignoreWhitespace)
+                {
+                    while (index > 0 && IsWhitespace(script[index]))
+                    {
+                        index--;
+                    }
+                }
+
+                if (index - macro.Length < 0)
+                {
+                    return false;
+                }
+
+                return script.ToString(index - macro.Length, macro.Length).Equals(macro);
+            }
         }
     }
 }

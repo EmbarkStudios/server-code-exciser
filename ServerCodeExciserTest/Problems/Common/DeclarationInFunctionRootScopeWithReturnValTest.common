@@ -50,7 +50,7 @@ class UDeclarationInFunctionRootScopeWithReturnValTest
 	{
 		ensure(System::IsServer());
 
-		float64 ThisMustBeGuarded = 0.0f;
+		float64 ThisMustBeGuarded = 0.0;
 		ThisMustBeGuarded--;
 
 		return ThisMustBeGuarded;

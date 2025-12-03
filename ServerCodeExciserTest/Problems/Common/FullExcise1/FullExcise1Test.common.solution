@@ -1,4 +1,3 @@
-
 #ifdef WITH_SERVER
 class UFullExcise1Test
 {

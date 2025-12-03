@@ -496,6 +496,8 @@ memberSpecification:
 
 memberdeclaration:
 	propertyDefinition
+	| classSpecifier
+	| enumSpecifier
 	| functionDefinition
 	| aliasDeclaration
 	| emptyDeclaration
