@@ -6,47 +6,37 @@
 lexer grammar UnrealAngelscriptLexer;
 
 IntegerLiteral:
-	DecimalLiteral Integersuffix?
-	| OctalLiteral Integersuffix?
-	| HexadecimalLiteral Integersuffix?
-	| BinaryLiteral Integersuffix?;
+    DecimalLiteral Integersuffix?
+    | OctalLiteral Integersuffix?
+    | HexadecimalLiteral Integersuffix?
+    | BinaryLiteral Integersuffix?
+;
 
 CharacterLiteral: ('u' | 'U' | 'L')? '\'' Cchar+ '\'';
 
 FloatingLiteral:
-	Fractionalconstant Exponentpart? Floatingsuffix?
-	| Digitsequence Exponentpart Floatingsuffix?;
+    Fractionalconstant Exponentpart? Floatingsuffix?
+    | Digitsequence Exponentpart Floatingsuffix?
+;
 
-StringLiteral:
-	'"""' .*? '"""'
-	| ('n' | 'f')? '"' (
-		~["\\\u0085\u2028\u2029]
-		| Escapesequence
-	)* '"';
+// https://angelscript.hazelight.se/scripting/fname-literals/
+// https://angelscript.hazelight.se/scripting/format-strings/
+fragment Angelscriptstringprefix: 'n' | 'f';
+
+StringLiteral: (Encodingprefix | Angelscriptstringprefix)? (Rawstring | '"' Schar* '"');
 
 BooleanLiteral: False | True;
 
 UserDefinedLiteral:
-	UserDefinedIntegerLiteral
-	| UserDefinedFloatingLiteral
-	| UserDefinedStringLiteral
-	| UserDefinedCharacterLiteral;
+    UserDefinedIntegerLiteral
+    | UserDefinedFloatingLiteral
+    | UserDefinedStringLiteral
+    | UserDefinedCharacterLiteral
+;
 
 /*Angelscript*/
 
-Cast: 'Cast';
-
-UClass: 'UCLASS';
-
-UStruct: 'USTRUCT';
-
-UProperty: 'UPROPERTY';
-
-UFunction: 'UFUNCTION';
-
-UEnum: 'UENUM';
-
-UMeta: 'UMETA';
+Cast: 'cast';
 
 Import: 'import';
 
@@ -55,12 +45,6 @@ From: 'from';
 Out: 'out';
 
 Property: 'property';
-
-Ensure: 'ensure';
-
-EnsureAlways: 'ensureAlways';
-
-Check: 'check';
 
 Mixin: 'mixin';
 
@@ -79,6 +63,26 @@ Float32: 'float32';
 Float64: 'float64';
 Double: 'double';
 Bool: 'bool';
+
+/* UnrealAngelscript */
+
+UClass: 'UCLASS';
+
+UStruct: 'USTRUCT';
+
+UProperty: 'UPROPERTY';
+
+UFunction: 'UFUNCTION';
+
+UEnum: 'UENUM';
+
+UMeta: 'UMETA';
+
+Ensure: 'ensure';
+
+EnsureAlways: 'ensureAlways';
+
+Check: 'check';
 
 /*Keywords*/
 
@@ -155,6 +159,8 @@ Switch: 'switch';
 This: 'this';
 
 True: 'true';
+
+Typedef: 'typedef';
 
 Virtual: 'virtual';
 
@@ -250,6 +256,10 @@ Semi: ';';
 
 Dot: '.';
 
+fragment Hexquad: HEXADECIMALDIGIT HEXADECIMALDIGIT HEXADECIMALDIGIT HEXADECIMALDIGIT;
+
+fragment Universalcharactername: '\\u' Hexquad | '\\U' Hexquad Hexquad;
+
 Identifier:
 	/*
 	 Identifiernondigit | Identifier Identifiernondigit | Identifier DIGIT
@@ -266,9 +276,7 @@ DecimalLiteral: NONZERODIGIT ('\''? DIGIT)*;
 
 OctalLiteral: '0' ('\''? OCTALDIGIT)*;
 
-HexadecimalLiteral: ('0x' | '0X') HEXADECIMALDIGIT (
-		'\''? HEXADECIMALDIGIT
-	)*;
+HexadecimalLiteral: ('0x' | '0X') HEXADECIMALDIGIT ( '\''? HEXADECIMALDIGIT)*;
 
 BinaryLiteral: ('0b' | '0B') BINARYDIGIT ('\''? BINARYDIGIT)*;
 
@@ -292,12 +300,9 @@ fragment Longsuffix: [lL];
 
 fragment Longlongsuffix: 'll' | 'LL';
 
-fragment Cchar: ~ ['\\\r\n] | Escapesequence;
+fragment Cchar: ~ ['\\\r\n] | Escapesequence | Universalcharactername;
 
-fragment Escapesequence:
-	Simpleescapesequence
-	| Octalescapesequence
-	| Hexadecimalescapesequence;
+fragment Escapesequence: Simpleescapesequence | Octalescapesequence | Hexadecimalescapesequence;
 
 fragment Simpleescapesequence:
 	'\\\''
@@ -316,17 +321,17 @@ fragment Simpleescapesequence:
 fragment Octalescapesequence:
 	'\\' OCTALDIGIT
 	| '\\' OCTALDIGIT OCTALDIGIT
-	| '\\' OCTALDIGIT OCTALDIGIT OCTALDIGIT;
+	| '\\' OCTALDIGIT OCTALDIGIT OCTALDIGIT
+;
 
 fragment Hexadecimalescapesequence: '\\x' HEXADECIMALDIGIT+;
 
 fragment Fractionalconstant:
 	Digitsequence? '.' Digitsequence
-	| Digitsequence '.';
+	| Digitsequence '.'
+;
 
-fragment Exponentpart:
-	'e' SIGN? Digitsequence
-	| 'E' SIGN? Digitsequence;
+fragment Exponentpart: 'e' SIGN? Digitsequence | 'E' SIGN? Digitsequence;
 
 fragment SIGN: [+-];
 
@@ -335,6 +340,10 @@ fragment Digitsequence: DIGIT ('\''? DIGIT)*;
 fragment Floatingsuffix: [flFL];
 
 fragment Encodingprefix: 'u8' | 'u' | 'U' | 'L';
+
+fragment Schar: ~ ["\\\r\n] | Escapesequence | Universalcharactername;
+
+fragment Rawstring: 'R"' ( '\\' ["()] | ~[\r\n (])*? '(' ~[)]*? ')' ( '\\' ["()] | ~[\r\n "])*? '"';
 
 UserDefinedIntegerLiteral:
 	DecimalLiteral Udsuffix
@@ -355,7 +364,11 @@ fragment Udsuffix: Identifier;
 Whitespace: [ \t]+ -> skip;
 
 Newline: ('\r' '\n'? | '\n') -> skip;
+
 BlockComment: '/*' .*? '*/' -> skip;
+
 LineComment: '//' ~ [\r\n]* -> skip;
+
 PreprocessorBranchRemoval: '#else' .*? '#endif' -> skip;
+
 Preprocessor: ('#if' | '#ifdef' | '#else' | '#endif') ~ [\r\n]* -> skip;
