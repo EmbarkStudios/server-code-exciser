@@ -33,10 +33,6 @@ namespace ServerCodeExcision
                             "Characters /Paul/.*|||Weapons/Rife.as")]
             public string? FullExcisionRegexString { get; init; }
 
-            [CommandOption("-s|--dontskip")]
-            [Description("Don't ever skip any files, even if they don't contain any server symbols.")]
-            public bool DontSkip { get; init; }
-
             [CommandOption("-m|--minratio")]
             [Description("Specify a ratio in percent as the next argument. If the excised % of code is less than this ratio, an error will be thrown. Good to detect catastrophic changes in excision performance.")]
             public int? RequiredExcisionRatio { get; init; } = -1;
@@ -93,7 +89,6 @@ namespace ServerCodeExcision
             parameters.Verify = settings.Verify;
             parameters.StrictMode = settings.StrictMode;
             parameters.UseFunctionStats = settings.UseFunctionStats;
-            parameters.DontSkip = settings.DontSkip;
             if (settings.RequiredExcisionRatio.HasValue)
             {
                 parameters.RequiredExcisionRatio = settings.RequiredExcisionRatio.Value / 100.0f;

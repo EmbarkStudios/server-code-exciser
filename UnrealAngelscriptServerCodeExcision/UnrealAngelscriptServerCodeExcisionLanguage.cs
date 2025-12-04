@@ -14,14 +14,6 @@ namespace UnrealAngelscriptServerCodeExcision
 
 		public List<string> ServerOnlySymbolRegexes	{ get { return _angelscriptServerOnlySymbolRegexes; } }
 
-		private List<string> _angelscriptServerOnlySymbols = new List<string>
-		{
-			"hasauthority()",
-			"server"
-		};
-
-		public List<string> ServerOnlySymbols { get { return _angelscriptServerOnlySymbols; } }
-
 		public string ServerPrecompilerSymbol { get { return "WITH_SERVER"; } }
 
 		public string ServerScopeStartString { get { return "#ifdef " + ServerPrecompilerSymbol; } }
@@ -40,11 +32,6 @@ namespace UnrealAngelscriptServerCodeExcision
 			return (T)Activator.CreateInstance(typeof(T), tokenStream);
 		}
 
-		public IServerCodeVisitor CreateSimpleVisitor(string code)
-		{
-			return new UnrealAngelscriptSimpleVisitor(code);
-		}
-
 		public IServerCodeVisitor CreateFunctionVisitor(string code)
 		{
 			return new UnrealAngelscriptFunctionVisitor(code);
@@ -53,19 +40,6 @@ namespace UnrealAngelscriptServerCodeExcision
 		public IServerCodeVisitor CreateSymbolVisitor(string code)
 		{
 			return new UnrealAngelscriptSymbolVisitor(code, this);
-		}
-		
-		public bool AnyServerOnlySymbolsInScript(string script)
-		{
-			foreach (var serverOnlySymbol in _angelscriptServerOnlySymbols)
-			{
-				if (script.ToLower().Contains(serverOnlySymbol))
-				{
-					return true;
-				}
-			}
-
-			return false;
 		}
 	}
 }

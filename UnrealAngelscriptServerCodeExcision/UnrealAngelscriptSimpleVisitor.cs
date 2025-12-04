@@ -10,7 +10,7 @@ namespace UnrealAngelscriptServerCodeExcision
 	{
 	}
 
-	public class UnrealAngelscriptSimpleVisitor : UnrealAngelscriptParserBaseVisitor<UnrealAngelscriptNode>, IServerCodeVisitor
+	public abstract class UnrealAngelscriptSimpleVisitor : UnrealAngelscriptParserBaseVisitor<UnrealAngelscriptNode>, IServerCodeVisitor
 	{
 		public List<ServerOnlyScopeData> DetectedServerOnlyScopes { get; protected set; }
 		public Dictionary<int, HashSet<string>> ClassStartIdxDummyReferenceData { get; protected set; }

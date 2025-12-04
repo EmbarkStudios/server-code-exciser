@@ -19,7 +19,6 @@ namespace ServerCodeExcision
         public bool Verify { get; set; } = false;
         public bool StrictMode { get; set; } = false;
         public bool UseFunctionStats { get; set; } = false;
-        public bool DontSkip { get; set; } = false;
         public float RequiredExcisionRatio { get; set; } = -1.0f;
         public EExcisionLanguage ExcisionLanguage { get; set; } = EExcisionLanguage.Unknown;
     }
@@ -210,15 +209,6 @@ namespace ServerCodeExcision
             {
                 // We want to excise all functions in this file no matter if there are any server symbols or not.
                 visitor = excisionLanguage.CreateFunctionVisitor(script);
-            }
-            else if (!_parameters.DontSkip && !excisionLanguage.AnyServerOnlySymbolsInScript(script))
-            {
-                // There are no interesting symbols in this script file. We should just skip it!
-                stats.CharactersExcised = 0;
-                if (_parameters.UseFunctionStats)
-                {
-                    visitor = excisionLanguage.CreateSimpleVisitor(script);
-                }
             }
             else
             {
