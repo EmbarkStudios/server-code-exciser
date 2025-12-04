@@ -16,4 +16,24 @@ class UAlreadyHasGuardsTest
 		int ButNotThis = 0;
 		ButNotThis++;
 	}
+
+	void Test2()
+	{
+#ifdef WITH_SERVER
+		check(System::IsServer());
+		int ThisMustBeGuarded = 0;
+		ThisMustBeGuarded++;
+#endif // WITH_SERVER
+	}
+
+	UFUNCTION(BlueprintOverride)
+	void Test3(float DeltaSeconds)
+	{
+		FTraceScope TraceScope(n"Test3");
+		check(System::IsServer());
+
+#ifdef WITH_SERVER
+		GroundContactHitResults.Empty();
+#endif
+	}
 };
