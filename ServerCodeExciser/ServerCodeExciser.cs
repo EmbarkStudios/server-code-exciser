@@ -61,19 +61,9 @@ namespace ServerCodeExcision
             [Description("Ensure that all files can be analyzed without syntactic or lexicographical errors.")]
             public bool StrictMode { get; init; }
 
-            [CommandArgument(0, "[INPUT]")]
+            [CommandArgument(0, "<INPUT_PATH>")]
             [Description("The input folder to excise.")]
-            public string InputPath { get; init; } = string.Empty;
-
-            public override ValidationResult Validate()
-            {
-                if (InputPath.Length <= 0)
-                {
-                    return ValidationResult.Error("Must provide at least one input path!");
-                }
-
-                return base.Validate();
-            }
+            public string? InputPath { get; init; }
         }
 
         class RootPaths
@@ -113,7 +103,7 @@ namespace ServerCodeExcision
                     return (int)EExciserReturnValues.InternalExcisionError;
                 }
             }
-            else if(Directory.Exists(settings.InputPath))
+            else if (Directory.Exists(settings.InputPath))
             {
                 parameters.InputPaths.Add(settings.InputPath);
             }
@@ -152,14 +142,7 @@ namespace ServerCodeExcision
     {
         public static int Main(string[] args)
         {
-            if (args.Length < 1)
-            {
-                Console.Error.WriteLine("You must provide an input path to read input files from as the first argument.");
-                return (int)EExciserReturnValues.BadInputPath;
-            }
-
-            var app = new CommandApp<ServerCodeExciserCommand>();
-            return app.Run(args);
+            return new CommandApp<ServerCodeExciserCommand>().Run(args);
         }
     }
 }
