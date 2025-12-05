@@ -45,6 +45,8 @@ Directive: '#' ~ [\r\n]* -> channel (PREPROCESSOR_CHANNEL);
 
 Cast: 'cast';
 
+From: 'from';
+
 Import: 'import';
 
 Int: 'int';
@@ -58,6 +60,8 @@ Int32: 'int32';
 Int64: 'int64';
 
 Mixin: 'mixin';
+
+Out: 'out';
 
 Property: 'property';
 
