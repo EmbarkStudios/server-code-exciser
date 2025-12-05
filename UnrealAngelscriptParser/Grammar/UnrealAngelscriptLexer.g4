@@ -5,6 +5,8 @@
 
 lexer grammar UnrealAngelscriptLexer;
 
+channels { PREPROCESSOR_CHANNEL }
+
 IntegerLiteral:
 	DecimalLiteral Integersuffix?
 	| OctalLiteral Integersuffix?
@@ -31,6 +33,10 @@ UserDefinedLiteral:
 	| UserDefinedFloatingLiteral
 	| UserDefinedStringLiteral
 	| UserDefinedCharacterLiteral;
+
+MultiLineMacro: '#' (~[\n]*? '\\' '\r'? '\n')+ ~ [\n]+ -> channel (PREPROCESSOR_CHANNEL);
+
+Directive: '#' ~ [\r\n]* -> channel (PREPROCESSOR_CHANNEL);
 
 /*
 	Angelscript reserved keywords
@@ -379,7 +385,3 @@ Newline: ('\r' '\n'? | '\n') -> skip;
 BlockComment: '/*' .*? '*/' -> skip;
 
 LineComment: '//' ~ [\r\n]* -> skip;
-
-PreprocessorBranchRemoval: '#else' .*? '#endif' -> skip;
-
-Preprocessor: ('#if' | '#ifdef' | '#else' | '#endif') ~ [\r\n]* -> skip;
