@@ -22,7 +22,7 @@ namespace ServerCodeExciser
         public bool StrictMode { get; set; } = false;
         public bool UseFunctionStats { get; set; } = false;
         public bool DontSkip { get; set; } = false;
-        public float RequiredExcisionRatio { get; set; } = -1.0f;
+        public float RequiredExcisionRatio { get; set; } = 0.0f;
         public EExcisionLanguage ExcisionLanguage { get; set; } = EExcisionLanguage.Unknown;
     }
 

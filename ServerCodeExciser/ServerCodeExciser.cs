@@ -39,7 +39,7 @@ namespace ServerCodeExciser
 
             [CommandOption("-m|--minratio")]
             [Description("Specify a ratio in percent as the next argument. If the excised % of code is less than this ratio, an error will be thrown. Good to detect catastrophic changes in excision performance.")]
-            public int? RequiredExcisionRatio { get; init; } = -1;
+            public int RequiredExcisionRatio { get; init; } = 0;
 
             [CommandOption("-t|--funcstats")]
             [Description("Outputs function stats instead of file stats. This is more accurate, but a lot slower, since it has to parse every file.")]
@@ -84,10 +84,7 @@ namespace ServerCodeExciser
             parameters.StrictMode = settings.StrictMode;
             parameters.UseFunctionStats = settings.UseFunctionStats;
             parameters.DontSkip = settings.DontSkip;
-            if (settings.RequiredExcisionRatio.HasValue)
-            {
-                parameters.RequiredExcisionRatio = settings.RequiredExcisionRatio.Value / 100.0f;
-            }
+            parameters.RequiredExcisionRatio = settings.RequiredExcisionRatio / 100.0f;
 
             if (File.Exists(settings.InputPath))
             {
