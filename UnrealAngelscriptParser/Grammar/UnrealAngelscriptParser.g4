@@ -21,9 +21,9 @@
  */
 
 /*
-	Adapted to Unreal Angelscript by Embark Studios AB (Fredrik Lindh [Temaran]).
-	Based on the C++ grammar made by Camilo Sanchez (Camiloasc1) and Martin Mirchev (Marti2203). See the parser file.
- */
+	Adapted to Unreal Angelscript by Embark Studios AB (originally Fredrik Lindh [Temaran]).
+	Based on: https://github.com/antlr/grammars-v4/blob/master/cpp/CPP14Parser.g4
+*/
 
 parser grammar UnrealAngelscriptParser;
 options {
