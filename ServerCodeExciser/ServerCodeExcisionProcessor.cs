@@ -1,10 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using System.Text.RegularExpressions;
 using Antlr4.Runtime;
 using ServerCodeExcisionCommon;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace ServerCodeExcision
 {
@@ -236,19 +238,25 @@ namespace ServerCodeExcision
                     stats.TotalNrCharacters = visitor.TotalNumberOfFunctionCharactersVisited;
                 }
 
-                // First process all server only scopes.
+                // Determine if there are any existing preprocessor server-code exclusions in the source file.
+                var detectedPreprocessorServerOnlyScopes = FindPreprocessorGuards(commonTokenStream)
+                    .Where(x => x.Directive.Contains(excisionLanguage.ServerScopeStartString, StringComparison.Ordinal));
+
+                // Process scopes we've evaluated must be server only.
                 foreach (ServerOnlyScopeData currentScope in visitor.DetectedServerOnlyScopes)
                 {
-                    if (currentScope.StartIndex == -1
-                        || currentScope.StopIndex == -1
-                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StartIndex, true, true, excisionLanguage.ServerScopeStartString)
-                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StartIndex, false, false, excisionLanguage.ServerScopeStartString)
-                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StopIndex, false, false, excisionLanguage.ServerScopeEndString))
+                    if (currentScope.StartIndex == -1 || currentScope.StopIndex == -1)
                     {
                         continue;
                     }
 
-                    // If there are already injected macros where we want to go, we should skip injecting.
+                    // Skip if there's already a server-code exclusion for the scope. (We don't want have duplicate guards.)
+                    var (StartIndex, StopIndex) = TrimWhitespace(script, currentScope);
+                    if (detectedPreprocessorServerOnlyScopes.Any(x => StartIndex >= x.StartIndex && StopIndex <= x.StopIndex))
+                    {
+                        continue; // We're inside an existing scope.
+                    }
+
                     System.Diagnostics.Debug.Assert(currentScope.StopIndex > currentScope.StartIndex, "There must be some invalid pattern here! Stop is before start!");
                     serverCodeInjections.Add(new KeyValuePair<int, string>(currentScope.StartIndex, "\r\n" + excisionLanguage.ServerScopeStartString));
                     serverCodeInjections.Add(new KeyValuePair<int, string>(currentScope.StopIndex, currentScope.Opt_ElseContent + excisionLanguage.ServerScopeEndString + "\r\n"));
@@ -326,6 +334,79 @@ namespace ServerCodeExcision
         private static bool IsWhitespace(char c)
         {
             return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+        }
+
+        /// <summary>
+        /// Resize a scope range by excluding whitespace characters.
+        /// </summary>
+        private static (int StartIndex, int StopIndex) TrimWhitespace(string script, ServerOnlyScopeData scope)
+        {
+            var (startIndex, stopIndex) = (scope.StartIndex, scope.StopIndex);
+
+            while (IsWhitespace(script[startIndex]))
+            {
+                startIndex++;
+            }
+
+            while (IsWhitespace(script[stopIndex]))
+            {
+                stopIndex--;
+            }
+
+            return (startIndex, stopIndex);
+        }
+
+        private static List<(string Directive, int StartIndex, int StopIndex)> FindPreprocessorGuards(BufferedTokenStream tokenStream)
+        {
+            var preprocessorDirectives = tokenStream
+                .GetTokens()
+                .Where(t => t.Channel == UnrealAngelscriptLexer.PREPROCESSOR_CHANNEL)
+                .Where(t => t.Type == UnrealAngelscriptLexer.Directive)
+                .ToList();
+
+            var preprocessorGuards = new List<(string Directive, int StartIndex, int StopIndex)>();
+            var ifStack = new Stack<IToken>();
+
+            foreach (var token in preprocessorDirectives)
+            {
+                switch (token.Text)
+                {
+                    case var t when t.StartsWith("#if", StringComparison.Ordinal): // #if, #ifdef, #ifndef
+                        ifStack.Push(token);
+                        break;
+
+                    case var t when t.StartsWith("#elif", StringComparison.Ordinal): // #elif, #elifdef, #elifndef
+                        {
+                            if (ifStack.TryPop(out var removed))
+                            {
+                                preprocessorGuards.Add((removed.Text, removed.StartIndex, token.StopIndex));
+                            }
+                            ifStack.Push(token);
+                        }
+                        break;
+
+                    case var t when t.StartsWith("#else", StringComparison.Ordinal):
+                        {
+                            if (ifStack.TryPop(out var removed))
+                            {
+                                preprocessorGuards.Add((removed.Text, removed.StartIndex, token.StopIndex));
+                            }
+                            ifStack.Push(token);
+                        }
+                        break;
+
+                    case var t when t.StartsWith("#endif", StringComparison.Ordinal):
+                        {
+                            if (ifStack.TryPop(out var removed))
+                            {
+                                preprocessorGuards.Add((removed.Text, removed.StartIndex, token.StopIndex));
+                            }
+                        }
+                        break;
+                }
+            }
+
+            return preprocessorGuards;
         }
 
         private bool InjectedMacroAlreadyExistsAtLocation(StringBuilder script, int index, bool lookAhead, bool ignoreWhitespace, string macro)

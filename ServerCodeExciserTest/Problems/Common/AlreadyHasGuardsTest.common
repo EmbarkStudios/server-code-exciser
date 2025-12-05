@@ -2,6 +2,10 @@ class UAlreadyHasGuardsTest
 {
 	void Test()
 	{
+// Commented out block.
+//#ifdef WITH_SERVER
+//#endif
+
 		int SomethingBefore = 0;
 		SomethingBefore++;
 
@@ -15,5 +19,36 @@ class UAlreadyHasGuardsTest
 
 		int ButNotThis = 0;
 		ButNotThis++;
+	}
+
+	void Test2()
+	{
+#ifdef WITH_SERVER
+		check(System::IsServer());
+		int ThisMustBeGuarded = 0;
+		ThisMustBeGuarded++;
+#endif // WITH_SERVER
+	}
+
+	void Test3()
+	{
+		check(System::IsServer());
+
+#ifdef WITH_SERVER
+		int ThisMustBeGuarded = 0;
+		ThisMustBeGuarded++;
+#endif
+	}
+
+	void Test4()
+	{
+		check(System::IsServer());
+#ifdef WITH_SERVER
+
+#if !RELEASE
+		int ThisMustBeGuarded = 0;
+		ThisMustBeGuarded++;
+#endif
+#endif
 	}
 };
