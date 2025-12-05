@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace ServerCodeExcision
+namespace ServerCodeExciser
 {
     public class ServerCodeExcisionParameters
     {

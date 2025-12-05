@@ -9,7 +9,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using UnrealAngelscriptServerCodeExcision;
 
-namespace ServerCodeExcision
+namespace ServerCodeExciser
 {
     internal sealed class ServerCodeExciserCommand : Command<ServerCodeExciserCommand.Settings>
     {
