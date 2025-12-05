@@ -37,7 +37,7 @@ namespace ServerCodeExciser
             _parameters = parameters;
 
             _functionExciseRegexes = new List<Regex>();
-            if (_parameters.ExciseAllFunctionsRegexString != "")
+            if (!string.IsNullOrEmpty(_parameters.ExciseAllFunctionsRegexString))
             {
                 var allFunctionExciseRegexStrings = _parameters.ExciseAllFunctionsRegexString.Split("|||");
                 foreach (var regexString in allFunctionExciseRegexStrings)
@@ -48,7 +48,7 @@ namespace ServerCodeExciser
             }
 
             _fullyExciseRegexes = new List<Regex>();
-            if (_parameters.FullExcisionRegexString != "")
+            if (!string.IsNullOrEmpty(_parameters.FullExcisionRegexString))
             {
                 var fullyExciseRegexStrings = _parameters.FullExcisionRegexString.Split("|||");
                 foreach (var regexString in fullyExciseRegexStrings)
