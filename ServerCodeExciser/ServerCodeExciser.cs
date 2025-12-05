@@ -28,9 +28,9 @@ namespace ServerCodeExciser
 
             [CommandOption("-f|--fullyexcise <REGEX>")]
             [Description("If this switch is specified, the next argument should be a string containing regex entries." +
-                            "If any of these regexes matches the relative path of any file to be processed, the entire file will be excised." +
-                            "You can specify more than one entry by separating them with three pipes, eg: " +
-                            "Characters /Paul/.*|||Weapons/Rife.as")]
+                "If any of these regexes matches the relative path of any file to be processed, the entire file will be excised." +
+                "You can specify more than one entry by separating them with three pipes, eg: " +
+                "Characters/Paul/.*|||Weapons/Rife.as")]
             public string? FullExcisionRegexString { get; init; }
 
             [CommandOption("-s|--dontskip")]
