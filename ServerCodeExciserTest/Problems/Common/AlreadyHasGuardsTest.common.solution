@@ -2,6 +2,10 @@ class UAlreadyHasGuardsTest
 {
 	void Test()
 	{
+// Commented out block.
+//#ifdef WITH_SERVER
+//#endif
+
 		int SomethingBefore = 0;
 		SomethingBefore++;
 
@@ -26,14 +30,25 @@ class UAlreadyHasGuardsTest
 #endif // WITH_SERVER
 	}
 
-	UFUNCTION(BlueprintOverride)
-	void Tick(float DeltaSeconds)
+	void Test3()
 	{
-		FTraceScope TraceScope(n"Tick\u00B0");
 		check(System::IsServer());
 
 #ifdef WITH_SERVER
-		GroundContactHitResults.Empty();
+		int ThisMustBeGuarded = 0;
+		ThisMustBeGuarded++;
+#endif
+	}
+
+	void Test4()
+	{
+		check(System::IsServer());
+#ifdef WITH_SERVER
+
+#if !RELEASE
+		int ThisMustBeGuarded = 0;
+		ThisMustBeGuarded++;
+#endif
 #endif
 	}
 };

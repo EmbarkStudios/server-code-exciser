@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using Antlr4.Runtime;
@@ -185,6 +186,7 @@ namespace ServerCodeExcision
             var inputStream = new AntlrInputStream(script);
             var lexer = excisionLanguage.CreateLexer<UnrealAngelscriptLexer>(inputStream);
             lexer.AddErrorListener(new ExcisionLexerErrorListener());
+
             var commonTokenStream = new CommonTokenStream(lexer);
             var parser = excisionLanguage.CreateParser<UnrealAngelscriptParser>(commonTokenStream);
             parser.AddErrorListener(new ExcisionParserErrorListener());
@@ -221,21 +223,67 @@ namespace ServerCodeExcision
             {
                 visitor.VisitContext(parser.script());
 
+                var preprocessorTokens = commonTokenStream
+                    .GetTokens()
+                    .Where(t => t.Channel == UnrealAngelscriptLexer.PREPROCESSOR_CHANNEL)
+                    .ToList();
+
                 if (_parameters.UseFunctionStats)
                 {
                     stats.TotalNrCharacters = visitor.TotalNumberOfFunctionCharactersVisited;
                 }
 
+                // Find matching #ifdef WITH_SERVER / #endif pairs
+                var serverGuardRanges = new List<(string Directive, int StartIndex, int StopIndex)>();
+                var ifStack = new Stack<IToken>();
+                var ifBranchStack = new Stack<IToken>();
+
+                foreach (var token in preprocessorTokens)
+                {
+                    switch (token.Text)
+                    {
+                        case var t when t.StartsWith("#if", StringComparison.Ordinal):
+                            ifStack.Push(token);
+                            break;
+                        case var t when t.StartsWith("#elif", StringComparison.Ordinal):
+                            ifBranchStack.Push(token);
+                            break;
+                        case var t when t.StartsWith("#else", StringComparison.Ordinal):
+                            ifBranchStack.Push(token);
+                            break;
+                        case var t when t.StartsWith("#endif", StringComparison.Ordinal):
+                            if (ifStack.TryPop(out var removed))
+                            {
+                                while (ifBranchStack.TryPop(out var removeBranch))
+                                {
+                                    serverGuardRanges.Add((removeBranch.Text, removed.StartIndex, token.StopIndex));
+                                }
+
+                                serverGuardRanges.Add((removed.Text, removed.StartIndex, token.StopIndex));
+                            }
+                            break;
+                    }
+                }
+                System.Diagnostics.Debug.Assert(ifStack.Count == 0);
+
+                //var existingPreprocessorGuards = FindPreprocessorGuards(script, excisionLanguage.ServerPrecompilerSymbol);
+
                 // First process all server only scopes.
                 foreach (ServerOnlyScopeData currentScope in visitor.DetectedServerOnlyScopes)
                 {
-                    if (currentScope.StartIndex == -1
-                        || currentScope.StopIndex == -1
-                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StartIndex, true, true, excisionLanguage.ServerScopeStartString)
-                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StartIndex, false, false, excisionLanguage.ServerScopeStartString)
-                        || InjectedMacroAlreadyExistsAtLocation(answerText, currentScope.StopIndex, false, false, excisionLanguage.ServerScopeEndString))
+                    if (currentScope.StartIndex == -1 || currentScope.StopIndex == -1)
                     {
                         continue;
+                    }
+
+                    // If there are already injected macros where we want to go, we should skip injecting.
+                    var (StartIndex, StopIndex) = TrimWhitespace(script, currentScope);
+                    //if (existingPreprocessorGuards.Any(x => StartIndex >= x.StartIndex && StopIndex <= x.StopIndex))
+                    if (serverGuardRanges
+                        .Where(x => x.Directive.Contains(excisionLanguage.ServerPrecompilerSymbol, StringComparison.Ordinal))
+                        .Any(x => StartIndex >= x.StartIndex && StopIndex <= x.StopIndex))
+                    {
+                        continue; // inside an existing server guard
                     }
 
                     // If there are already injected macros where we want to go, we should skip injecting.
@@ -318,7 +366,89 @@ namespace ServerCodeExcision
             return c == ' ' || c == '\t' || c == '\r' || c == '\n';
         }
 
-        private bool InjectedMacroAlreadyExistsAtLocation(StringBuilder script, int index, bool lookAhead, bool ignoreWhitespace, string macro)
+        /// <summary>
+        /// Resizes a scope range by excluding whitespace characters.
+        /// </summary>
+        public static (int StartIndex, int StopIndex) TrimWhitespace(string script, ServerOnlyScopeData scope)
+        {
+            var (startIndex, stopIndex) = (scope.StartIndex, scope.StopIndex);
+
+            while (IsWhitespace(script[startIndex]))
+            {
+                startIndex++;
+            }
+
+            while (IsWhitespace(script[stopIndex]))
+            {
+                stopIndex--;
+            }
+
+            return (startIndex, stopIndex);
+        }
+
+        public static List<(int StartIndex, int StopIndex)> FindPreprocessorGuards(string script, string macro)
+        {
+            List<(int StartIndex, int StopIndex)> results = new();
+
+            int scriptIndex = 0;
+
+            int blockLevel = 0;
+            int blockStartIndex = -1;
+
+            while (scriptIndex < script.Length)
+            {
+                if (script[scriptIndex] == '#')
+                {
+                    if (script[scriptIndex..(scriptIndex + 3)] == "#if" || script[scriptIndex..(scriptIndex + 4)] == "#elif") // #if #ifdef #ifndef
+                    {
+                        if (++blockLevel == 1)
+                        {
+                            int lineEnd = scriptIndex;
+                            while (script[lineEnd] != '\r' && script[lineEnd] != '\n')
+                            {
+                                lineEnd++;
+                            }
+
+                            if (script[scriptIndex..lineEnd].Contains(macro, StringComparison.Ordinal))
+                            {
+                                blockStartIndex = scriptIndex;
+                            }
+                        }
+                    }
+                    else if (script[scriptIndex..(scriptIndex + 6)] == "#endif")
+                    {
+                        if (--blockLevel == 0 && blockStartIndex != -1)
+                        {
+                            int lineEnd = scriptIndex;
+                            while (script[lineEnd] != '\r' && script[lineEnd] != '\n')
+                            {
+                                lineEnd++;
+                            }
+
+                            results.Add((blockStartIndex, scriptIndex));
+
+                            blockStartIndex = -1;
+                        }
+                    }
+                }
+
+                scriptIndex++;
+            }
+
+            return results;
+        }
+
+        private static void FindPreprocessorGuards(TextReader reader)
+        {
+            string? line = reader.ReadLine();
+
+            while (line != null)
+            {
+
+            }
+        }
+
+        private static bool InjectedMacroAlreadyExistsAtLocation(StringBuilder script, int index, bool lookAhead, bool ignoreWhitespace, string macro)
         {
             if (lookAhead)
             {
