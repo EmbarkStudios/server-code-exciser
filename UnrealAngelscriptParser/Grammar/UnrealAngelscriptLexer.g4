@@ -1,7 +1,7 @@
 /*
-	Adapted to Unreal Angelscript by Embark Studios AB (Fredrik Lindh [Temaran]).
-	Based on the C++ grammar made by Camilo Sanchez (Camiloasc1) and Martin Mirchev (Marti2203). See the parser file.
- */
+	Adapted to Unreal Angelscript by Embark Studios AB (originally Fredrik Lindh [Temaran]).
+	Based on: https://github.com/antlr/grammars-v4/blob/master/cpp/CPP14Lexer.g4
+*/
 
 lexer grammar UnrealAngelscriptLexer;
 
@@ -17,12 +17,12 @@ FloatingLiteral:
 	Fractionalconstant Exponentpart? Floatingsuffix?
 	| Digitsequence Exponentpart Floatingsuffix?;
 
-StringLiteral:
-	'"""' .*? '"""'
-	| ('n' | 'f')? '"' (
-		~["\\\u0085\u2028\u2029]
-		| Escapesequence
-	)* '"';
+// UnrealAngelscript string literals
+// https://angelscript.hazelight.se/scripting/fname-literals/
+// https://angelscript.hazelight.se/scripting/format-strings/
+fragment Angelscriptstringprefix: 'n' | 'f';
+
+StringLiteral: (Encodingprefix | Angelscriptstringprefix)? (Rawstring | '"' Schar* '"');
 
 BooleanLiteral: False | True;
 
@@ -32,9 +32,50 @@ UserDefinedLiteral:
 	| UserDefinedStringLiteral
 	| UserDefinedCharacterLiteral;
 
-/*Angelscript*/
+/*
+	Angelscript reserved keywords
+	https://www.angelcode.com/angelscript/sdk/docs/manual/doc_reserved_keywords.html
+*/
 
-Cast: 'Cast';
+Cast: 'cast';
+
+Import: 'import';
+
+Int: 'int';
+
+Int8: 'int8';
+
+Int16: 'int16';
+
+Int32: 'int32';
+
+Int64: 'int64';
+
+Mixin: 'mixin';
+
+Property: 'property';
+
+UInt: 'uint';
+
+UInt8: 'uint8';
+
+UInt16: 'uint16';
+
+UInt32: 'uint32';
+
+UInt64: 'uint64';
+
+Float: 'float';
+
+Float32: 'float32';
+
+Float64: 'float64';
+
+Double: 'double';
+
+Bool: 'bool';
+
+/* UnrealAngelscript */
 
 UClass: 'UCLASS';
 
@@ -48,37 +89,11 @@ UEnum: 'UENUM';
 
 UMeta: 'UMETA';
 
-Import: 'import';
-
-From: 'from';
-
-Out: 'out';
-
-Property: 'property';
-
 Ensure: 'ensure';
 
 EnsureAlways: 'ensureAlways';
 
 Check: 'check';
-
-Mixin: 'mixin';
-
-Int: 'int';
-Int8: 'int8';
-Int16: 'int16';
-Int32: 'int32';
-Int64: 'int64';
-UInt: 'uint';
-UInt8: 'uint8';
-UInt16: 'uint16';
-UInt32: 'uint32';
-UInt64: 'uint64';
-Float: 'float';
-Float32: 'float32';
-Float64: 'float64';
-Double: 'double';
-Bool: 'bool';
 
 /*Keywords*/
 
@@ -155,6 +170,8 @@ Switch: 'switch';
 This: 'this';
 
 True: 'true';
+
+Typedef: 'typedef';
 
 Virtual: 'virtual';
 
@@ -250,6 +267,10 @@ Semi: ';';
 
 Dot: '.';
 
+fragment Hexquad: HEXADECIMALDIGIT HEXADECIMALDIGIT HEXADECIMALDIGIT HEXADECIMALDIGIT;
+
+fragment Universalcharactername: '\\u' Hexquad | '\\U' Hexquad Hexquad;
+
 Identifier:
 	/*
 	 Identifiernondigit | Identifier Identifiernondigit | Identifier DIGIT
@@ -266,9 +287,7 @@ DecimalLiteral: NONZERODIGIT ('\''? DIGIT)*;
 
 OctalLiteral: '0' ('\''? OCTALDIGIT)*;
 
-HexadecimalLiteral: ('0x' | '0X') HEXADECIMALDIGIT (
-		'\''? HEXADECIMALDIGIT
-	)*;
+HexadecimalLiteral: ('0x' | '0X') HEXADECIMALDIGIT ( '\''? HEXADECIMALDIGIT)*;
 
 BinaryLiteral: ('0b' | '0B') BINARYDIGIT ('\''? BINARYDIGIT)*;
 
@@ -292,12 +311,9 @@ fragment Longsuffix: [lL];
 
 fragment Longlongsuffix: 'll' | 'LL';
 
-fragment Cchar: ~ ['\\\r\n] | Escapesequence;
+fragment Cchar: ~ ['\\\r\n] | Escapesequence | Universalcharactername;
 
-fragment Escapesequence:
-	Simpleescapesequence
-	| Octalescapesequence
-	| Hexadecimalescapesequence;
+fragment Escapesequence: Simpleescapesequence | Octalescapesequence | Hexadecimalescapesequence;
 
 fragment Simpleescapesequence:
 	'\\\''
@@ -336,6 +352,10 @@ fragment Floatingsuffix: [flFL];
 
 fragment Encodingprefix: 'u8' | 'u' | 'U' | 'L';
 
+fragment Schar: ~ ["\\\r\n] | Escapesequence | Universalcharactername;
+
+fragment Rawstring: 'R"' ( '\\' ["()] | ~[\r\n (])*? '(' ~[)]*? ')' ( '\\' ["()] | ~[\r\n "])*? '"';
+
 UserDefinedIntegerLiteral:
 	DecimalLiteral Udsuffix
 	| OctalLiteral Udsuffix
@@ -355,7 +375,11 @@ fragment Udsuffix: Identifier;
 Whitespace: [ \t]+ -> skip;
 
 Newline: ('\r' '\n'? | '\n') -> skip;
+
 BlockComment: '/*' .*? '*/' -> skip;
+
 LineComment: '//' ~ [\r\n]* -> skip;
+
 PreprocessorBranchRemoval: '#else' .*? '#endif' -> skip;
+
 Preprocessor: ('#if' | '#ifdef' | '#else' | '#endif') ~ [\r\n]* -> skip;
