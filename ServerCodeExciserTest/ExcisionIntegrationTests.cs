@@ -67,6 +67,7 @@ public class IntegrationTests
                 FullExcisionRegexString = @"FullExcise1/.*",
                 ExciseAllFunctionsRegexString = @"AllFunctionExcise1/.*|||AllFunctionExcise2/.*",
                 StrictMode = true,
+                DontSkip = true,
             };
             excisionParams.InputPaths.Add(inputPath);
 
