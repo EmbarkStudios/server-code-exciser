@@ -1,14 +1,14 @@
 using Antlr4.Runtime;
 using ServerCodeExcisionCommon;
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace ServerCodeExcision
+namespace ServerCodeExciser
 {
     public class ServerCodeExcisionParameters
     {
@@ -22,7 +22,7 @@ namespace ServerCodeExcision
         public bool StrictMode { get; set; } = false;
         public bool UseFunctionStats { get; set; } = false;
         public bool DontSkip { get; set; } = false;
-        public float RequiredExcisionRatio { get; set; } = -1.0f;
+        public float RequiredExcisionRatio { get; set; } = 0.0f;
         public EExcisionLanguage ExcisionLanguage { get; set; } = EExcisionLanguage.Unknown;
     }
 
@@ -37,7 +37,7 @@ namespace ServerCodeExcision
             _parameters = parameters;
 
             _functionExciseRegexes = new List<Regex>();
-            if (_parameters.ExciseAllFunctionsRegexString != "")
+            if (!string.IsNullOrEmpty(_parameters.ExciseAllFunctionsRegexString))
             {
                 var allFunctionExciseRegexStrings = _parameters.ExciseAllFunctionsRegexString.Split("|||");
                 foreach (var regexString in allFunctionExciseRegexStrings)
@@ -48,7 +48,7 @@ namespace ServerCodeExcision
             }
 
             _fullyExciseRegexes = new List<Regex>();
-            if (_parameters.FullExcisionRegexString != "")
+            if (!string.IsNullOrEmpty(_parameters.FullExcisionRegexString))
             {
                 var fullyExciseRegexStrings = _parameters.FullExcisionRegexString.Split("|||");
                 foreach (var regexString in fullyExciseRegexStrings)
@@ -61,7 +61,7 @@ namespace ServerCodeExcision
 
         public EExciserReturnValues ExciseServerCode(string filePattern, IServerCodeExcisionLanguage excisionLanguage)
         {
-            var startTime = DateTime.UtcNow;
+            var globalStopwatch = Stopwatch.StartNew();
             var globalStats = new ExcisionStats();
 
             var options = new EnumerationOptions();
@@ -107,16 +107,19 @@ namespace ServerCodeExcision
 
                     try
                     {
+                        var stopwatch = Stopwatch.StartNew();
                         var stats = ProcessCodeFile(fileName, inputPath, excisionMode, excisionLanguage);
+                        stopwatch.Stop();
+
                         if (stats.CharactersExcised > 0)
                         {
                             System.Diagnostics.Debug.Assert(stats.TotalNrCharacters > 0, "Something is terribly wrong. We have excised characters, but no total characters..?");
                             var excisionRatio = (float)stats.CharactersExcised / (float)stats.TotalNrCharacters * 100.0f;
-                            Console.WriteLine("Excised {0:0.00}% of server only code in file ({1}/{2}): {3}", excisionRatio, fileIdx + 1, allFiles.Length, fileName);
+                            Console.WriteLine($"[{fileIdx + 1}/{allFiles.Length}] Excised {excisionRatio:0.00}% of server only code in file (took {stopwatch.Elapsed.TotalMilliseconds:0.0}ms): {fileName}");
                         }
                         else
                         {
-                            Console.WriteLine("No server only code found in file ({0}/{1}): {2}", fileIdx + 1, allFiles.Length, fileName);
+                            Console.WriteLine($"[{fileIdx + 1}/{allFiles.Length}] No server only code found in file: {fileName}");
                         }
 
                         globalStats.CharactersExcised += stats.CharactersExcised;
@@ -124,13 +127,13 @@ namespace ServerCodeExcision
                     }
                     catch (Exception)
                     {
-                        Console.WriteLine("Failed to parse ({0}/{1}): {2}", fileIdx + 1, allFiles.Length, fileName);
+                        Console.Error.WriteLine($"[{fileIdx + 1}/{allFiles.Length}] Failed to parse: {fileName}");
                         throw;
                     }
                 }
             }
 
-            var endTime = DateTime.UtcNow;
+            globalStopwatch.Stop();
 
             // In verification mode error codes reverse the normal behavior of the exciser.
             // Modifications required -> error
@@ -157,8 +160,7 @@ namespace ServerCodeExcision
                 Console.WriteLine("Excised {0:0.00}% ({1}/{2} characters) of server only code from the script files.",
                             totalExcisionRatio, globalStats.CharactersExcised, globalStats.TotalNrCharacters);
 
-                var timeTaken = endTime - startTime;
-                Console.WriteLine("Excision took {0:0} hours, {1:0} minutes and {2:0.0} seconds.\n\n", timeTaken.Hours, timeTaken.Minutes, timeTaken.Seconds);
+                Console.WriteLine($"Excision took {globalStopwatch.Elapsed.TotalSeconds:0.0}s.");
 
                 if (_parameters.RequiredExcisionRatio > 0.0f && totalExcisionRatio < _parameters.RequiredExcisionRatio)
                 {

@@ -9,7 +9,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using UnrealAngelscriptServerCodeExcision;
 
-namespace ServerCodeExcision
+namespace ServerCodeExciser
 {
     internal sealed class ServerCodeExciserCommand : Command<ServerCodeExciserCommand.Settings>
     {
@@ -28,9 +28,9 @@ namespace ServerCodeExcision
 
             [CommandOption("-f|--fullyexcise <REGEX>")]
             [Description("If this switch is specified, the next argument should be a string containing regex entries." +
-                            "If any of these regexes matches the relative path of any file to be processed, the entire file will be excised." +
-                            "You can specify more than one entry by separating them with three pipes, eg: " +
-                            "Characters /Paul/.*|||Weapons/Rife.as")]
+                "If any of these regexes matches the relative path of any file to be processed, the entire file will be excised." +
+                "You can specify more than one entry by separating them with three pipes, eg: " +
+                "Characters/Paul/.*|||Weapons/Rife.as")]
             public string? FullExcisionRegexString { get; init; }
 
             [CommandOption("-s|--dontskip")]
@@ -39,7 +39,7 @@ namespace ServerCodeExcision
 
             [CommandOption("-m|--minratio")]
             [Description("Specify a ratio in percent as the next argument. If the excised % of code is less than this ratio, an error will be thrown. Good to detect catastrophic changes in excision performance.")]
-            public int? RequiredExcisionRatio { get; init; } = -1;
+            public int RequiredExcisionRatio { get; init; } = 0;
 
             [CommandOption("-t|--funcstats")]
             [Description("Outputs function stats instead of file stats. This is more accurate, but a lot slower, since it has to parse every file.")]
@@ -61,19 +61,9 @@ namespace ServerCodeExcision
             [Description("Ensure that all files can be analyzed without syntactic or lexicographical errors.")]
             public bool StrictMode { get; init; }
 
-            [CommandArgument(0, "[INPUT]")]
+            [CommandArgument(0, "<INPUT_PATH>")]
             [Description("The input folder to excise.")]
-            public string InputPath { get; init; } = string.Empty;
-
-            public override ValidationResult Validate()
-            {
-                if (InputPath.Length <= 0)
-                {
-                    return ValidationResult.Error("Must provide at least one input path!");
-                }
-
-                return base.Validate();
-            }
+            public string? InputPath { get; init; }
         }
 
         class RootPaths
@@ -94,10 +84,7 @@ namespace ServerCodeExcision
             parameters.StrictMode = settings.StrictMode;
             parameters.UseFunctionStats = settings.UseFunctionStats;
             parameters.DontSkip = settings.DontSkip;
-            if (settings.RequiredExcisionRatio.HasValue)
-            {
-                parameters.RequiredExcisionRatio = settings.RequiredExcisionRatio.Value / 100.0f;
-            }
+            parameters.RequiredExcisionRatio = settings.RequiredExcisionRatio / 100.0f;
 
             if (File.Exists(settings.InputPath))
             {
@@ -113,7 +100,7 @@ namespace ServerCodeExcision
                     return (int)EExciserReturnValues.InternalExcisionError;
                 }
             }
-            else if(Directory.Exists(settings.InputPath))
+            else if (Directory.Exists(settings.InputPath))
             {
                 parameters.InputPaths.Add(settings.InputPath);
             }
@@ -152,14 +139,7 @@ namespace ServerCodeExcision
     {
         public static int Main(string[] args)
         {
-            if (args.Length < 1)
-            {
-                Console.Error.WriteLine("You must provide an input path to read input files from as the first argument.");
-                return (int)EExciserReturnValues.BadInputPath;
-            }
-
-            var app = new CommandApp<ServerCodeExciserCommand>();
-            return app.Run(args);
+            return new CommandApp<ServerCodeExciserCommand>().Run(args);
         }
     }
 }
