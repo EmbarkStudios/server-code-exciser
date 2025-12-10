@@ -198,9 +198,6 @@ namespace ServerCodeExciser
                 parser.ErrorHandler = new BailErrorStrategy();
             }
 
-            var answerText = new StringBuilder();
-            answerText.Append(script);
-
             IServerCodeVisitor? visitor = null;
             if (excisionMode == EExcisionMode.Full)
             {
@@ -278,7 +275,7 @@ namespace ServerCodeExciser
                     dummyRefDataBlockString.Append("\r\n" + excisionLanguage.ServerScopeEndString + "\r\n\r\n");
 
                     // If there is already a block of dummy reference variables we skip adding new ones, there is no guarantee we are adding the right code.
-                    if (InjectedMacroAlreadyExistsAtLocation(answerText, dummyRefDataPair.Key, false, true, dummyVarScope + "\r\n"))
+                    if (InjectedMacroAlreadyExistsAtLocation(script, dummyRefDataPair.Key, false, true, dummyVarScope + "\r\n"))
                     {
                         continue;
                     }
@@ -292,6 +289,8 @@ namespace ServerCodeExciser
             {
                 return pair2.Key.CompareTo(pair1.Key);
             });
+
+            var answerText = new StringBuilder(script);
 
             // Now insert them in that reversed order.
             bool fileHasChanged = false;
@@ -411,7 +410,7 @@ namespace ServerCodeExciser
             return preprocessorGuards;
         }
 
-        private bool InjectedMacroAlreadyExistsAtLocation(StringBuilder script, int index, bool lookAhead, bool ignoreWhitespace, string macro)
+        private bool InjectedMacroAlreadyExistsAtLocation(string script, int index, bool lookAhead, bool ignoreWhitespace, string macro)
         {
             if (lookAhead)
             {
@@ -428,7 +427,7 @@ namespace ServerCodeExciser
                     return false;
                 }
 
-                return script.ToString(index, macro.Length).Equals(macro);
+                return script[index..(index + macro.Length)].Equals(macro);
             }
             else
             {
@@ -445,7 +444,7 @@ namespace ServerCodeExciser
                     return false;
                 }
 
-                return script.ToString(index - macro.Length, macro.Length).Equals(macro);
+                return script[(index - macro.Length)..index].Equals(macro);
             }
         }
     }
