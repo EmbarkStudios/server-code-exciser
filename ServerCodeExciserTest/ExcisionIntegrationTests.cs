@@ -1,8 +1,8 @@
+using System;
+using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ServerCodeExciser;
 using ServerCodeExcisionCommon;
-using System;
-using System.IO;
 using UnrealAngelscriptServerCodeExcision;
 
 [TestClass]

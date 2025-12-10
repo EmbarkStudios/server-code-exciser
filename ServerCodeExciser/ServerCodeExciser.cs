@@ -1,12 +1,12 @@
-﻿using ServerCodeExcisionCommon;
-using Spectre.Console;
-using Spectre.Console.Cli;
-using System;
+﻿using System;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ServerCodeExcisionCommon;
+using Spectre.Console;
+using Spectre.Console.Cli;
 using UnrealAngelscriptServerCodeExcision;
 
 namespace ServerCodeExciser
