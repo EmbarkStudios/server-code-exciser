@@ -1,49 +1,49 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ServerCodeExciser;
 using ServerCodeExcisionCommon;
-using Spectre.Console;
 using System;
 using System.IO;
 using UnrealAngelscriptServerCodeExcision;
 
-public class IntegrationTests
+[TestClass]
+public class ExcisionIntegrationTests
 {
-    private static string TestProblemPath = @"Problems";
-    private static string TestAnswerPath = @"Answers";
+    private static string DataRootDir = Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, "..", "..", ".."));
 
-    public static int Main(string[] args)
+    [TestMethod]
+    public void ExciseAngelscriptCases()
     {
         int numTestFailures = 0;
         int numTestCases = 0;
 
-        try
-        {
-            // Run for Angelscript
-            var angelscriptResult = RunExciserIntegrationTests(
-                ".as",
-                Path.Combine(Environment.CurrentDirectory, TestProblemPath, "Angelscript"),
-                Path.Combine(Environment.CurrentDirectory, TestAnswerPath, "Angelscript"),
-                ref numTestFailures,
-                ref numTestCases);
+        // Run for Angelscript
+        var actual = RunExciserIntegrationTests(
+            ".as",
+            Path.Combine(DataRootDir, "Problems", "Angelscript"),
+            Path.Combine(DataRootDir, "Answers", "Angelscript"),
+            ref numTestFailures,
+            ref numTestCases);
 
-            // Run for "common"
-            var commonResult = RunExciserIntegrationTests(
-                ".common",
-                Path.Combine(Environment.CurrentDirectory, TestProblemPath, "Common"),
-                Path.Combine(Environment.CurrentDirectory, TestAnswerPath, "Common"),
-                ref numTestFailures,
-                ref numTestCases);
+        Assert.AreEqual(EExciserReturnValues.Success, actual);
+        Assert.AreEqual(0, numTestFailures);
+    }
 
-            Console.WriteLine("----------------------------");
-            Console.WriteLine($"{numTestCases} test(s) executed.");
-            Console.WriteLine($"{numTestFailures} test(s) failed.");
-        }
-        catch (Exception e)
-        {
-            AnsiConsole.WriteException(e);
-            return 1;
-        }
+    [TestMethod]
+    public void ExciseCommonCases()
+    {
+        int numTestFailures = 0;
+        int numTestCases = 0;
 
-        return numTestFailures == 0 ? 0 : 1;
+        // Run for "common"
+        var actual = RunExciserIntegrationTests(
+            ".common",
+            Path.Combine(DataRootDir, "Problems", "Common"),
+            Path.Combine(DataRootDir, "Answers", "Common"),
+            ref numTestFailures,
+            ref numTestCases);
+
+        Assert.AreEqual(EExciserReturnValues.Success, actual);
+        Assert.AreEqual(0, numTestFailures);
     }
 
     private static EExciserReturnValues RunExciserIntegrationTests(string fileExtension, string inputPath, string outputPath, ref int numTestFailures, ref int numTestCases)
