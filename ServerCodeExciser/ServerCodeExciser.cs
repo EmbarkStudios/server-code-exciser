@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -69,7 +69,7 @@ namespace ServerCodeExciser
         class RootPaths
         {
             [JsonPropertyName("AngelscriptScriptRoots")]
-            public string[] AngelscriptScriptRoots { get;set;} = Array.Empty<string>();
+            public string[] AngelscriptScriptRoots { get; set; } = Array.Empty<string>();
         }
 
         public override int Execute([NotNull] CommandContext context, [NotNull] Settings settings)
@@ -91,7 +91,7 @@ namespace ServerCodeExciser
                 var desc = File.ReadAllText(settings.InputPath);
                 var paths = JsonSerializer.Deserialize<RootPaths>(desc);
                 if (paths != null)
-                { 
+                {
                     parameters.InputPaths.UnionWith(paths.AngelscriptScriptRoots);
                 }
                 else
