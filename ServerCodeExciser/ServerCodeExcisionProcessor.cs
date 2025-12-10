@@ -107,19 +107,20 @@ namespace ServerCodeExciser
 
                     try
                     {
+                        var stats = new ExcisionStats();
                         var stopwatch = Stopwatch.StartNew();
-                        var stats = ProcessCodeFile(fileName, inputPath, excisionMode, excisionLanguage);
+                        var ret = ProcessCodeFile(fileName, inputPath, excisionMode, excisionLanguage, ref stats);
                         stopwatch.Stop();
 
                         if (stats.CharactersExcised > 0)
                         {
                             System.Diagnostics.Debug.Assert(stats.TotalNrCharacters > 0, "Something is terribly wrong. We have excised characters, but no total characters..?");
                             var excisionRatio = (float)stats.CharactersExcised / (float)stats.TotalNrCharacters * 100.0f;
-                            Console.WriteLine($"[{fileIdx + 1}/{allFiles.Length}] Excised {excisionRatio:0.00}% of server only code in file (took {stopwatch.Elapsed.TotalMilliseconds:0.0}ms): {fileName}");
+                            Console.WriteLine($"[{fileIdx + 1}/{allFiles.Length}] Excised {excisionRatio:0.00}% of server only code (took {stopwatch.Elapsed.TotalMilliseconds:0.0}ms): {fileName}");
                         }
                         else
                         {
-                            Console.WriteLine($"[{fileIdx + 1}/{allFiles.Length}] No server only code found in file: {fileName}");
+                            Console.WriteLine($"[{fileIdx + 1}/{allFiles.Length}] No action required (took {stopwatch.Elapsed.TotalMilliseconds:0.0}ms): {fileName}");
                         }
 
                         globalStats.CharactersExcised += stats.CharactersExcised;
@@ -177,10 +178,8 @@ namespace ServerCodeExciser
             return EExciserReturnValues.Success;
         }
 
-        private ExcisionStats ProcessCodeFile(string fileName, string inputPath, EExcisionMode excisionMode, IServerCodeExcisionLanguage excisionLanguage)
+        private EExciserReturnValues ProcessCodeFile(string fileName, string inputPath, EExcisionMode excisionMode, IServerCodeExcisionLanguage excisionLanguage, ref ExcisionStats stats)
         {
-            var stats = new ExcisionStats();
-
             var relativePath = Path.GetRelativePath(inputPath, fileName);
             var script = File.ReadAllText(fileName);
             stats.TotalNrCharacters = script.Length;
@@ -327,10 +326,11 @@ namespace ServerCodeExciser
                 catch (Exception e)
                 {
                     Console.WriteLine(e.ToString());
+                    return EExciserReturnValues.BadOutputPath;
                 }
             }
 
-            return stats;
+            return EExciserReturnValues.Success;
         }
 
         private static bool IsWhitespace(char c)
