@@ -115,13 +115,13 @@ namespace ServerCodeExcisionCommon
         private static char[] NewLineChars = { '\r', '\n' };
         private static char[] SkippableScopeChars = { '\t', '\r', '\n' };
 
-        public static int FindScriptIndexForCodePoint(string script, int line, int column)
+        public static int FindScriptIndexForCodePoint(string script, SourcePosition position)
         {
             int cursor = 0;
             int linesTraversed = 1;
             while (cursor != -1)
             {
-                if (linesTraversed == line)
+                if (linesTraversed == position.Line)
                 {
                     break;
                 }
@@ -142,7 +142,7 @@ namespace ServerCodeExcisionCommon
                 ++linesTraversed;
             }
 
-            return (linesTraversed == line) ? (cursor + column) : -1;
+            return (linesTraversed == position.Line) ? (cursor + position.Column) : -1;
         }
 
         public static Type FindFirstDirectChildOfType<Type>(Antlr4.Runtime.Tree.IParseTree currentContext)

@@ -35,8 +35,8 @@ namespace UnrealAngelscriptServerCodeExcision
 
         public override UnrealAngelscriptNode VisitFunctionBody(UnrealAngelscriptParser.FunctionBodyContext context)
         {
-            var functionStartIndex = ExcisionUtils.FindScriptIndexForCodePoint(Script, context.Start.Line, context.Start.Column) + 1;
-            var functionEndIndex = ExcisionUtils.FindScriptIndexForCodePoint(Script, context.Stop.Line, context.Stop.Column) + 1;
+            var functionStartIndex = ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(context.Start.Line, context.Start.Column)) + 1;
+            var functionEndIndex = ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(context.Stop.Line, context.Stop.Column)) + 1;
             TotalNumberOfFunctionCharactersVisited += Math.Abs(functionEndIndex - functionStartIndex);
 
             return VisitChildren(context);
@@ -205,7 +205,7 @@ namespace UnrealAngelscriptServerCodeExcision
                     var classMemberSpec = classSpecifierContext.GetChild(2) as UnrealAngelscriptParser.MemberSpecificationContext;
                     if (classMemberSpec != null)
                     {
-                        classStartIdx = ExcisionUtils.FindScriptIndexForCodePoint(Script, classMemberSpec.Start.Line, 0);
+                        classStartIdx = ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(classMemberSpec.Start.Line, 0));
                     }
                 }
 
@@ -291,8 +291,8 @@ namespace UnrealAngelscriptServerCodeExcision
             var returnData = GetDefaultReturnStatementForScope(context);
 
             ServerOnlyScopeData newData = new ServerOnlyScopeData(
-                ExcisionUtils.FindScriptIndexForCodePoint(Script, context.Start.Line, context.Start.Column) + 1,
-                ExcisionUtils.FindScriptIndexForCodePoint(Script, context.Stop.Line, 0));
+                ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(context.Start.Line, context.Start.Column)) + 1,
+                ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(context.Stop.Line, 0)));
 
             if (returnData.ReturnType != EReturnType.NoReturn)
             {

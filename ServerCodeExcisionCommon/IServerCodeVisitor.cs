@@ -5,8 +5,10 @@ namespace ServerCodeExcisionCommon
     public struct ServerOnlyScopeData
     {
         public int StartIndex;
+
         public int StopIndex;
-        public string Opt_ElseContent;
+
+        public string Opt_ElseContent { get; set; }
 
         public ServerOnlyScopeData(int startIndex, int stopIndex)
         {

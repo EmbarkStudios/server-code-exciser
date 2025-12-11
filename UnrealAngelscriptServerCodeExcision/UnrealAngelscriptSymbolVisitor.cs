@@ -119,8 +119,8 @@ namespace UnrealAngelscriptServerCodeExcision
                     var returnData = GetDefaultReturnStatementForScope(selectionScope);
 
                     ServerOnlyScopeData newData = new ServerOnlyScopeData(
-                    ExcisionUtils.FindScriptIndexForCodePoint(Script, selectionScope.Start.Line, selectionScope.Start.Column) + 1,
-                    ExcisionUtils.FindScriptIndexForCodePoint(Script, selectionScope.Stop.Line, 0));
+                        ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(selectionScope.Start.Line, selectionScope.Start.Column)) + 1,
+                        ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(selectionScope.Stop.Line, 0)));
 
                     if (returnData.ReturnType != EReturnType.NoReturn)
                     {
@@ -141,8 +141,8 @@ namespace UnrealAngelscriptServerCodeExcision
                 if (oneLineScope != null)
                 {
                     ServerOnlyScopeData newData = new ServerOnlyScopeData(
-                        MoveOneLine(ExcisionUtils.FindScriptIndexForCodePoint(Script, oneLineScope.Start.Line, 0), false),
-                        MoveOneLine(ExcisionUtils.FindScriptIndexForCodePoint(Script, oneLineScope.Stop.Line, oneLineScope.Stop.Column) + 1, true));
+                        MoveOneLine(ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(oneLineScope.Start.Line, 0)), false),
+                        MoveOneLine(ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(oneLineScope.Stop.Line, oneLineScope.Stop.Column)) + 1, true));
 
                     // If there is a return statement at the end, we must replace it with a suitable replacement, or code will stop compiling.
                     // For one-liners, we actually remove the entire scope, which means we must replace it completely.
@@ -199,8 +199,8 @@ namespace UnrealAngelscriptServerCodeExcision
             if (parentScope != null && ifScopeStopLine > 0 && ifScopeStopColumn > 0)
             {
                 ServerOnlyScopeData newData = new ServerOnlyScopeData(
-                    ExcisionUtils.FindScriptIndexForCodePoint(Script, ifScopeStopLine, ifScopeStopColumn) + 1,
-                    ExcisionUtils.FindScriptIndexForCodePoint(Script, parentScope.Stop.Line, 0));
+                    ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(ifScopeStopLine, ifScopeStopColumn)) + 1,
+                    ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(parentScope.Stop.Line, 0)));
 
                 // If there is a return statement at the end, we must replace it with a suitable replacement, or code will stop compiling.
                 var returnData = GetDefaultReturnStatementForScope(parentScope);
@@ -259,8 +259,8 @@ namespace UnrealAngelscriptServerCodeExcision
                         var returnData = GetDefaultReturnStatementForScope(parentScope);
 
                         ServerOnlyScopeData newData = new ServerOnlyScopeData(
-                            ExcisionUtils.FindScriptIndexForCodePoint(Script, simpleDeclaration.Stop.Line, simpleDeclaration.Stop.Column) + 1,
-                            ExcisionUtils.FindScriptIndexForCodePoint(Script, parentScope.Stop.Line, 0));
+                            ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(simpleDeclaration.Stop.Line, simpleDeclaration.Stop.Column)) + 1,
+                            ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(parentScope.Stop.Line, 0)));
 
                         if (returnData.ReturnType != EReturnType.NoReturn)
                         {
