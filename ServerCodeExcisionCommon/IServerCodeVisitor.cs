@@ -1,19 +1,23 @@
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace ServerCodeExcisionCommon
 {
     public struct ServerOnlyScopeData
     {
-        public int StartIndex;
+        public string CalledFrom { get; }
 
-        public int StopIndex;
+        public SourceSpan Span { get; }
+
+        public int Opt_ElseIndex { get; }
 
         public string Opt_ElseContent { get; set; }
 
-        public ServerOnlyScopeData(int startIndex, int stopIndex)
+        public ServerOnlyScopeData(SourceSpan span, int elseIndex, [CallerMemberName] string caller = "")
         {
-            StartIndex = startIndex;
-            StopIndex = stopIndex;
+            CalledFrom = caller;
+            Span = span;
+            Opt_ElseIndex = elseIndex;
             Opt_ElseContent = "";
         }
     }

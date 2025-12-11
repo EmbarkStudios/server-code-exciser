@@ -1,7 +1,11 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Text;
+using System.Xml.Xsl;
 using ServerCodeExcisionCommon;
+using static Antlr4.Runtime.Atn.SemanticContext;
 
 namespace UnrealAngelscriptServerCodeExcision
 {
@@ -269,15 +273,9 @@ namespace UnrealAngelscriptServerCodeExcision
             return null;
         }
 
-        protected string BuildIndentationForColumnCount(int nrCols)
+        protected static string BuildIndentationForColumnCount(int nrCols)
         {
-            var indentation = new StringBuilder("");
-            for (int indentIdx = 0; indentIdx < nrCols; indentIdx++)
-            {
-                indentation.Append("\t");
-            }
-
-            return indentation.ToString();
+            return new string('\t', nrCols);
         }
 
         protected void DecorateFunctionBody(UnrealAngelscriptParser.FunctionBodyContext context)
@@ -297,7 +295,12 @@ namespace UnrealAngelscriptServerCodeExcision
             var returnData = GetDefaultReturnStatementForScope(context);
 
             ServerOnlyScopeData newData = new ServerOnlyScopeData(
-                context.Start.StopIndex + 1,
+                new SourceSpan(
+                    new SourcePosition(context.Start.Line, context.Start.Column),
+                    new SourcePosition(context.Stop.Line, context.Stop.Column),
+                    context.Start.StartIndex,
+                    context.Stop.StopIndex
+                ),
                 ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(context.Stop.Line, 0)));
 
             if (returnData.ReturnType != EReturnType.NoReturn)

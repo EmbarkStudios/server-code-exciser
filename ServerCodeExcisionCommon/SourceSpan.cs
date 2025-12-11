@@ -1,3 +1,5 @@
+using System;
+
 namespace ServerCodeExcisionCommon
 {
     /// <summary>
@@ -21,6 +23,11 @@ namespace ServerCodeExcisionCommon
 
         public SourceSpan(SourcePosition start, SourcePosition end, int startIndex, int endIndex)
         {
+            if (startIndex > endIndex)
+            {
+                throw new ArgumentException($"{nameof(startIndex)} is greater than {nameof(endIndex)}");
+            }
+
             Start = start;
             End = end;
             StartIndex = startIndex;

@@ -243,22 +243,135 @@ namespace ServerCodeExciser
                 // Process scopes we've evaluated must be server only.
                 foreach (ServerOnlyScopeData currentScope in visitor.DetectedServerOnlyScopes)
                 {
-                    if (currentScope.StartIndex == -1 || currentScope.StopIndex == -1)
+                    if (currentScope.Span.StartIndex == -1 || currentScope.Span.EndIndex == -1)
                     {
                         continue;
                     }
 
                     // Skip if there's already a server-code exclusion for the scope. (We don't want have duplicate guards.)
-                    var (StartIndex, StopIndex) = TrimWhitespace(script, currentScope);
+                    var (StartIndex, StopIndex) = TrimWhitespace(script, currentScope.Span);
                     if (detectedPreprocessorServerOnlyScopes.Any(x => StartIndex >= x.StartIndex && StopIndex <= x.StopIndex))
                     {
                         continue; // We're inside an existing scope.
                     }
 
-                    System.Diagnostics.Debug.Assert(currentScope.StopIndex > currentScope.StartIndex, "There must be some invalid pattern here! Stop is before start!");
-                    serverCodeInjections.Add(new KeyValuePair<int, string>(currentScope.StartIndex, "\r\n" + excisionLanguage.ServerScopeStartString));
-                    serverCodeInjections.Add(new KeyValuePair<int, string>(currentScope.StopIndex, currentScope.Opt_ElseContent + excisionLanguage.ServerScopeEndString + "\r\n"));
-                    stats.CharactersExcised += currentScope.StopIndex - currentScope.StartIndex;
+                    int ScanToStartOfLine(int index)
+                    {
+                        while (index > 0)
+                        {
+                            if (script[index - 1] == '\n')
+                            {
+                                return index;
+                            }
+                            index--;
+                        }
+                        return index;
+                    }
+
+                    int TrimWhitespace2(int index)
+                    {
+                        while (index > 0)
+                        {
+                            switch (script[index - 1])
+                            {
+                                case ' ':
+                                case '\t':
+                                    break;
+                                default:
+                                    return index;
+                            }
+
+                            index--;
+                        }
+                        return index;
+                    }
+
+                    int ScanToNextLineBreak(int index)
+                    {
+                        while (index < script.Length)
+                        {
+                            if (script[index] == '\n')
+                            {
+                                return index + 1;
+                            }
+                            index++;
+                        }
+                        return index;
+                    }
+
+                    const bool markers = false;
+
+                    if (markers)
+                    {
+                        serverCodeInjections.Add(new KeyValuePair<int, string>(currentScope.Span.StartIndex + 1, "<<!!>>"));
+                    }
+
+                    /*var startIndex = script[currentScope.Span.StartIndex] switch
+                    {
+                        '{' => ScanToNextLineBreak(currentScope.Span.StartIndex + 1),
+                        ';' => ScanToNextLineBreak(currentScope.Span.StartIndex + 1),
+                        ')' => ScanToNextLineBreak(currentScope.Span.StartIndex + 1),
+                        _ => currentScope.Span.StartIndex,
+                    };*/
+
+                    int startIndex = currentScope.Span.StartIndex + 1;
+
+                    //var startIndex = ScanToNextLineBreak(currentScope.Span.StartIndex + 1);
+                    var startText = $"{excisionLanguage.ServerScopeStartString}\r\n";
+                    if (startText.StartsWith("#"))
+                    {
+                        startIndex = ScanToNextLineBreak(currentScope.Span.StartIndex + 1);
+                    }
+
+                    var builder = new StringBuilder();
+                    builder.Append(markers ? "<START>" : "");
+                    builder.Append(startText);
+                    builder.Append(markers ? "</START>" : "");
+                    serverCodeInjections.Add(new KeyValuePair<int, string>(startIndex, builder.ToString()));
+
+                    /*if (!string.IsNullOrEmpty(currentScope.Opt_ElseContent))
+                    {
+                        serverCodeInjections.Add(new KeyValuePair<int, string>(currentScope.Opt_ElseIndex, currentScope.Opt_ElseContent));
+                    }*/
+
+                    var endIndex = script[currentScope.Span.EndIndex] switch
+                    {
+                        '}' => ScanToStartOfLine(currentScope.Span.EndIndex),
+                        ';' => ScanToNextLineBreak(currentScope.Span.EndIndex),
+                        _ => currentScope.Span.EndIndex,
+                    };
+
+                    //string elseText = "";
+
+                    //var endIndex = ScanToStartOfLine(currentScope.Span.EndIndex);
+                    //var endIndex = TrimWhitespace2(currentScope.Span.EndIndex + 1);
+                    //string endText = $"<ELSE>{currentScope.Opt_ElseContent}</ELSE>{excisionLanguage.ServerScopeEndString}<END>\r\n";// excisionLanguage.ServerScopeEndString;
+                    //endText += "\r\n" + new string('\t', currentScope.Span.End.Column);
+
+                    //serverCodeInjections.Add(new KeyValuePair<int, string>(endIndex, endText));
+
+                    var endText = $"{excisionLanguage.ServerScopeEndString}\r\n";
+                    if (endText.StartsWith("#"))
+                    {
+                        endIndex = ScanToStartOfLine(endIndex);
+                    }
+
+                    builder = new StringBuilder();
+
+                    if (!string.IsNullOrEmpty(currentScope.Opt_ElseContent))
+                    {
+                        builder.Append(markers ? "<ELSE>" : "");
+                        builder.Append(currentScope.Opt_ElseContent);
+                        builder.Append(markers ? "</ELSE>" : "");
+                    }
+
+                    builder.Append(markers ? "<END>" : "");
+                    builder.Append(endText);
+                    builder.Append(markers ? "</END>" : "");
+
+                    serverCodeInjections.Add(new KeyValuePair<int, string>(endIndex, builder.ToString()));
+
+                    stats.CharactersExcised += currentScope.Span.EndIndex - currentScope.Span.StartIndex;
                 }
 
                 // Next we must add dummy reference variables if they exist.
@@ -340,9 +453,9 @@ namespace ServerCodeExciser
         /// <summary>
         /// Resize a scope range by excluding whitespace characters.
         /// </summary>
-        private static (int StartIndex, int StopIndex) TrimWhitespace(string script, ServerOnlyScopeData scope)
+        private static (int StartIndex, int StopIndex) TrimWhitespace(string script, SourceSpan span)
         {
-            var (startIndex, stopIndex) = (scope.StartIndex, scope.StopIndex);
+            var (startIndex, stopIndex) = (span.StartIndex, span.EndIndex);
 
             while (IsWhitespace(script[startIndex]))
             {

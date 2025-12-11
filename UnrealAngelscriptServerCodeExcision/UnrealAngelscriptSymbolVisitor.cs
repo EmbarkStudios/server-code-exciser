@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Antlr4.Runtime;
+using Antlr4.Runtime.Tree;
 using ServerCodeExcisionCommon;
 
 namespace UnrealAngelscriptServerCodeExcision
@@ -120,7 +122,12 @@ namespace UnrealAngelscriptServerCodeExcision
                     var returnData = GetDefaultReturnStatementForScope(selectionScope);
 
                     ServerOnlyScopeData newData = new ServerOnlyScopeData(
-                        selectionScope.Start.StopIndex + 1,
+                        new SourceSpan(
+                            new SourcePosition(selectionScope.Start.Line, selectionScope.Start.Column),
+                            new SourcePosition(selectionScope.Stop.Line, selectionScope.Stop.Column),
+                            selectionScope.Start.StartIndex,
+                            selectionScope.Stop.StopIndex
+                        ),
                         ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(selectionScope.Stop.Line, 0)));
 
                     if (returnData.ReturnType != EReturnType.NoReturn)
@@ -141,9 +148,44 @@ namespace UnrealAngelscriptServerCodeExcision
                 var oneLineScope = context.GetChild(childIdx) as UnrealAngelscriptParser.StatementContext;
                 if (oneLineScope != null)
                 {
+                    //ServerOnlyScopeData newData = new ServerOnlyScopeData(
+                    //    MoveOneLine(ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(oneLineScope.Start.Line, 0)), false),
+                    //    MoveOneLine(ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(oneLineScope.Stop.Line, oneLineScope.Stop.Column)) + 1, true));
+
+                    int ScanToEndOfPreviousLine(int index)
+                    {
+                        while (index > 0)
+                        {
+                            if (Script[index - 1] == '\n')
+                            {
+                                index--;
+                                return (Script[index - 1] == '\r') ? index - 2 : index - 1;
+                            }
+                            index--;
+                        }
+                        return index;
+                    }
+
+                    //var start = new SourcePosition(oneLineScope.Start.Line, 0);
+                    //var startIndex = MoveOneLine(ExcisionUtils.FindScriptIndexForCodePoint(Script, start), false);
+                    //var stop = new SourcePosition(oneLineScope.Stop.Line, oneLineScope.Stop.Column);
+                    //var stopIndex = MoveOneLine(ExcisionUtils.FindScriptIndexForCodePoint(Script, stop) + 1, true);
+
+                    // We want the index of the last character for the parent 'if' condition, or ")".
+                    // This denotes the start of the single-line if's scope.
+                    if (context.GetChild(childIdx - 1) is not ITerminalNode prevSyntax)
+                    {
+                        throw new InvalidOperationException();
+                    }
+
                     ServerOnlyScopeData newData = new ServerOnlyScopeData(
-                        MoveOneLine(ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(oneLineScope.Start.Line, 0)), false),
-                        MoveOneLine(ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(oneLineScope.Stop.Line, oneLineScope.Stop.Column)) + 1, true));
+                            new SourceSpan(
+                                new SourcePosition(prevSyntax.Symbol.Line, prevSyntax.Symbol.Column), //new SourcePosition(start.Line, start.Column),
+                                new SourcePosition(oneLineScope.Stop.Line, oneLineScope.Stop.Column), //new SourcePosition(stop.Line, stop.Column),
+                                prevSyntax.Symbol.StopIndex,
+                                oneLineScope.Stop.StopIndex // include ;
+                            ),
+                            ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(oneLineScope.Stop.Line, 0)));
 
                     // If there is a return statement at the end, we must replace it with a suitable replacement, or code will stop compiling.
                     // For one-liners, we actually remove the entire scope, which means we must replace it completely.
@@ -192,7 +234,12 @@ namespace UnrealAngelscriptServerCodeExcision
             if (parentScope != null && ifScopeStop != null)
             {
                 ServerOnlyScopeData newData = new ServerOnlyScopeData(
-                    ifScopeStop.StopIndex + 1,
+                    new SourceSpan(
+                        new SourcePosition(ifScopeStop.Line, ifScopeStop.Column),
+                        new SourcePosition(parentScope.Stop.Line, parentScope.Stop.Column),
+                        ifScopeStop.StartIndex,
+                        parentScope.Stop.StopIndex
+                    ),
                     ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(parentScope.Stop.Line, 0)));
 
                 // If there is a return statement at the end, we must replace it with a suitable replacement, or code will stop compiling.
@@ -252,7 +299,12 @@ namespace UnrealAngelscriptServerCodeExcision
                         var returnData = GetDefaultReturnStatementForScope(parentScope);
 
                         ServerOnlyScopeData newData = new ServerOnlyScopeData(
-                            simpleDeclaration.Stop.StopIndex + 1,
+                            new SourceSpan(
+                                new SourcePosition(simpleDeclaration.Stop.Line, simpleDeclaration.Stop.Column),
+                                new SourcePosition(parentScope.Stop.Line, parentScope.Stop.Column),
+                                simpleDeclaration.Stop.StartIndex,
+                                parentScope.Stop.StopIndex
+                            ),
                             ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(parentScope.Stop.Line, 0)));
 
                         if (returnData.ReturnType != EReturnType.NoReturn)
