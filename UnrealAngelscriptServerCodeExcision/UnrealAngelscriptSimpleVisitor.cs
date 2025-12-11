@@ -211,7 +211,7 @@ namespace UnrealAngelscriptServerCodeExcision
 
                 if (classStartIdx < 0)
                 {
-                    // Reference return dected in non-class. Just leave this alone for now.
+                    // Reference return detected in non-class. Just leave this alone for now.
                     return EReturnType.RootScopeReferenceReturn;
                 }
 
@@ -287,11 +287,17 @@ namespace UnrealAngelscriptServerCodeExcision
                 return;
             }
 
+            // Don't detect scopes that are just one line.
+            if (context.Start.Line == context.Stop.Line)
+            {
+                return;
+            }
+
             // If there is a return statement at the end, we must replace it with a suitable replacement, or code will stop compiling.
             var returnData = GetDefaultReturnStatementForScope(context);
 
             ServerOnlyScopeData newData = new ServerOnlyScopeData(
-                ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(context.Start.Line, context.Start.Column)) + 1,
+                context.Start.StopIndex + 1,
                 ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(context.Stop.Line, 0)));
 
             if (returnData.ReturnType != EReturnType.NoReturn)
@@ -301,9 +307,7 @@ namespace UnrealAngelscriptServerCodeExcision
                 newData.Opt_ElseContent = string.Format("#else\r\n{0}{1}\r\n", scopeIndentation, returnData.DefaultReturnString);
             }
 
-            // Don't detect scopes that are just one line.
-            if (context.Start.Line != context.Stop.Line
-                && returnData.ReturnType != EReturnType.RootScopeReferenceReturn)
+            if (returnData.ReturnType != EReturnType.RootScopeReferenceReturn)
             {
                 DetectedServerOnlyScopes.Add(newData);
             }

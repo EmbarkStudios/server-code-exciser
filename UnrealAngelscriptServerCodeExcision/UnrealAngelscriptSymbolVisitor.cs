@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using Antlr4.Runtime;
 using ServerCodeExcisionCommon;
 
 namespace UnrealAngelscriptServerCodeExcision
@@ -119,7 +120,7 @@ namespace UnrealAngelscriptServerCodeExcision
                     var returnData = GetDefaultReturnStatementForScope(selectionScope);
 
                     ServerOnlyScopeData newData = new ServerOnlyScopeData(
-                        ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(selectionScope.Start.Line, selectionScope.Start.Column)) + 1,
+                        selectionScope.Start.StopIndex + 1,
                         ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(selectionScope.Stop.Line, 0)));
 
                     if (returnData.ReturnType != EReturnType.NoReturn)
@@ -176,30 +177,22 @@ namespace UnrealAngelscriptServerCodeExcision
                 return;
             }
 
-            int ifScopeStopLine = -1;
-            int ifScopeStopColumn = -1;
-            var selectionScope = ifScope.GetChild(0) as UnrealAngelscriptParser.CompoundStatementContext;
-            if (selectionScope != null)
+            IToken ifScopeStop = null;
+            if (ifScope.GetChild(0) is UnrealAngelscriptParser.CompoundStatementContext selectionScope)
             {
-                ifScopeStopLine = selectionScope.Stop.Line;
-                ifScopeStopColumn = selectionScope.Stop.Column;
+                ifScopeStop = selectionScope.Stop;
             }
-            else
+            else if (ifScope is UnrealAngelscriptParser.StatementContext oneLineScope)
             {
                 // Perhaps it's a one-liner..?
-                var oneLineScope = ifScope as UnrealAngelscriptParser.StatementContext;
-                if (oneLineScope != null)
-                {
-                    ifScopeStopLine = oneLineScope.Stop.Line;
-                    ifScopeStopColumn = oneLineScope.Stop.Column;
-                }
+                ifScopeStop = oneLineScope.Stop;
             }
 
             var parentScope = ExcisionUtils.FindParentContextOfType<UnrealAngelscriptParser.CompoundStatementContext>(context);
-            if (parentScope != null && ifScopeStopLine > 0 && ifScopeStopColumn > 0)
+            if (parentScope != null && ifScopeStop != null)
             {
                 ServerOnlyScopeData newData = new ServerOnlyScopeData(
-                    ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(ifScopeStopLine, ifScopeStopColumn)) + 1,
+                    ifScopeStop.StopIndex + 1,
                     ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(parentScope.Stop.Line, 0)));
 
                 // If there is a return statement at the end, we must replace it with a suitable replacement, or code will stop compiling.
@@ -259,7 +252,7 @@ namespace UnrealAngelscriptServerCodeExcision
                         var returnData = GetDefaultReturnStatementForScope(parentScope);
 
                         ServerOnlyScopeData newData = new ServerOnlyScopeData(
-                            ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(simpleDeclaration.Stop.Line, simpleDeclaration.Stop.Column)) + 1,
+                            simpleDeclaration.Stop.StopIndex + 1,
                             ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(parentScope.Stop.Line, 0)));
 
                         if (returnData.ReturnType != EReturnType.NoReturn)
