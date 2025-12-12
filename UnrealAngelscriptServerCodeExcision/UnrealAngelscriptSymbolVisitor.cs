@@ -171,21 +171,21 @@ namespace UnrealAngelscriptServerCodeExcision
                     //var stop = new SourcePosition(oneLineScope.Stop.Line, oneLineScope.Stop.Column);
                     //var stopIndex = MoveOneLine(ExcisionUtils.FindScriptIndexForCodePoint(Script, stop) + 1, true);
 
-                    // We want the index of the last character for the parent 'if' condition, or ")".
-                    // This denotes the start of the single-line if's scope.
+                    // We want the index at the end of the preceeding statement.
+                    // This should either be ')' or 'else' given the branch of the if.
                     if (context.GetChild(childIdx - 1) is not ITerminalNode prevSyntax)
                     {
                         throw new InvalidOperationException();
                     }
 
                     ServerOnlyScopeData newData = new ServerOnlyScopeData(
-                            new SourceSpan(
-                                new SourcePosition(prevSyntax.Symbol.Line, prevSyntax.Symbol.Column), //new SourcePosition(start.Line, start.Column),
-                                new SourcePosition(oneLineScope.Stop.Line, oneLineScope.Stop.Column), //new SourcePosition(stop.Line, stop.Column),
-                                prevSyntax.Symbol.StopIndex,
-                                oneLineScope.Stop.StopIndex // include ;
-                            ),
-                            ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(oneLineScope.Stop.Line, 0)));
+                        new SourceSpan(
+                            new SourcePosition(prevSyntax.Symbol.Line, prevSyntax.Symbol.Column), //new SourcePosition(start.Line, start.Column),
+                            new SourcePosition(oneLineScope.Stop.Line, oneLineScope.Stop.Column), //new SourcePosition(stop.Line, stop.Column),
+                            prevSyntax.Symbol.StopIndex,
+                            oneLineScope.Stop.StopIndex
+                        ),
+                        ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(oneLineScope.Stop.Line, 0)));
 
                     // If there is a return statement at the end, we must replace it with a suitable replacement, or code will stop compiling.
                     // For one-liners, we actually remove the entire scope, which means we must replace it completely.

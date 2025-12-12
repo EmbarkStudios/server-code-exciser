@@ -5,21 +5,21 @@ namespace ServerCodeExcisionCommon
     /// <summary>
     /// Represents a span of source code from a start position to an end position.
     /// </summary>
-    public readonly struct SourceSpan
+    public struct SourceSpan
     {
-        public SourcePosition Start { get; }
+        public SourcePosition Start { get; set; }
 
-        public SourcePosition End { get; }
+        public SourcePosition End { get; set; }
 
         /// <summary>
         /// The absolute start index in the source text (0-based).
         /// </summary>
-        public int StartIndex { get; }
+        public int StartIndex { get; set; }
 
         /// <summary>
         /// The absolute end index in the source text (0-based, exclusive).
         /// </summary>
-        public int EndIndex { get; }
+        public int EndIndex { get; set; }
 
         public SourceSpan(SourcePosition start, SourcePosition end, int startIndex, int endIndex)
         {
