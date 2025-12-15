@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Antlr4.Runtime;
@@ -8,7 +8,7 @@ namespace ServerCodeExciser
 {
     public class PreprocessorParser
     {
-        public static List<PreprocessorNode> Parse(BufferedTokenStream tokenStream)
+        public static List<PreprocessorScope> Parse(BufferedTokenStream tokenStream)
         {
             var directives = tokenStream
                 .GetTokens()
@@ -17,8 +17,8 @@ namespace ServerCodeExciser
                 .OrderBy(t => t.StartIndex)
                 .ToList();
 
-            var rootNodes = new List<PreprocessorNode>();
-            var ifStack = new Stack<PreprocessorNode>();
+            var rootScopes = new List<PreprocessorScope>();
+            var ifStack = new Stack<PreprocessorScope>();
 
             foreach (var token in directives)
             {
@@ -33,7 +33,7 @@ namespace ServerCodeExciser
                             }
                             else
                             {
-                                rootNodes.Add(scope);
+                                rootScopes.Add(scope);
                             }
                             ifStack.Push(scope);
                         }
@@ -75,12 +75,12 @@ namespace ServerCodeExciser
                 }
             }
 
-            return rootNodes;
+            return rootScopes;
         }
 
-        private static PreprocessorNode CreateScope(IToken token)
+        private static PreprocessorScope CreateScope(IToken token)
         {
-            return new PreprocessorNode(
+            return new PreprocessorScope(
                 token.Text,
                 new SourceSpan(
                     token.Line,

@@ -8,6 +8,10 @@
 
 	<ItemGroup>
 	  <PackageReference Include="MSTest" Version="3.11.1" />
+	  <PackageReference Include="TestableIO.System.IO.Abstractions" Version="22.1.0" />
+	  <PackageReference Include="TestableIO.System.IO.Abstractions.Extensions" Version="22.0.4" />
+	  <PackageReference Include="TestableIO.System.IO.Abstractions.TestingHelpers" Version="22.1.0" />
+	  <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" Version="22.1.0" />
 	</ItemGroup>
 
 	<ItemGroup>

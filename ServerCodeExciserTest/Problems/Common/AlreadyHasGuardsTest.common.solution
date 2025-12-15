@@ -51,4 +51,14 @@ class UAlreadyHasGuardsTest
 #endif
 #endif
 	}
+
+	void Test5_Server()
+	{
+#ifdef WITH_SERVER
+		check(System::IsServer());
+#if !RELEASE
+
+#endif
+#endif // WITH_SERVER
+} //test
 };

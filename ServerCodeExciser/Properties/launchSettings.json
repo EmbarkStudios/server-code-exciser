@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ServerCodeExciser": {
+      "commandName": "Project",
+      "commandLineArgs": "-s -o D:\\test D:\\p4\\games\\Games\\Discovery\\Script"
+    }
+  }
+}

@@ -148,29 +148,6 @@ namespace UnrealAngelscriptServerCodeExcision
                 var oneLineScope = context.GetChild(childIdx) as UnrealAngelscriptParser.StatementContext;
                 if (oneLineScope != null)
                 {
-                    //ServerOnlyScopeData newData = new ServerOnlyScopeData(
-                    //    MoveOneLine(ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(oneLineScope.Start.Line, 0)), false),
-                    //    MoveOneLine(ExcisionUtils.FindScriptIndexForCodePoint(Script, new SourcePosition(oneLineScope.Stop.Line, oneLineScope.Stop.Column)) + 1, true));
-
-                    int ScanToEndOfPreviousLine(int index)
-                    {
-                        while (index > 0)
-                        {
-                            if (Script[index - 1] == '\n')
-                            {
-                                index--;
-                                return (Script[index - 1] == '\r') ? index - 2 : index - 1;
-                            }
-                            index--;
-                        }
-                        return index;
-                    }
-
-                    //var start = new SourcePosition(oneLineScope.Start.Line, 0);
-                    //var startIndex = MoveOneLine(ExcisionUtils.FindScriptIndexForCodePoint(Script, start), false);
-                    //var stop = new SourcePosition(oneLineScope.Stop.Line, oneLineScope.Stop.Column);
-                    //var stopIndex = MoveOneLine(ExcisionUtils.FindScriptIndexForCodePoint(Script, stop) + 1, true);
-
                     // We want the index at the end of the preceeding statement.
                     // This should either be ')' or 'else' given the branch of the if.
                     if (context.GetChild(childIdx - 1) is not ITerminalNode prevSyntax)

@@ -1,11 +1,11 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using ServerCodeExcisionCommon;
 
 namespace ServerCodeExciser
 {
-    public sealed class PreprocessorNode
+    public sealed class PreprocessorScope
     {
-        public PreprocessorNode(string directive, SourceSpan span)
+        public PreprocessorScope(string directive, SourceSpan span)
         {
             Directive = directive;
             Span = span;
@@ -15,6 +15,6 @@ namespace ServerCodeExciser
 
         public SourceSpan Span { get; set; }
 
-        public List<PreprocessorNode> Children { get; set; } = new();
+        public List<PreprocessorScope> Children { get; set; } = new();
     }
 }

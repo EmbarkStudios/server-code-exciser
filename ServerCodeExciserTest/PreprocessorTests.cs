@@ -1,8 +1,7 @@
-﻿using Antlr4.Runtime;
+using Antlr4.Runtime;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using ServerCodeExciser;
 
-namespace ServerCodeExciserTest
+namespace ServerCodeExciser.Tests
 {
     [TestClass]
     public class PreprocessorTests

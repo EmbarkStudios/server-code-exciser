@@ -77,15 +77,15 @@ namespace ServerCodeExciser
 
                 for (int fileIdx = 0; fileIdx < allFiles.Length; fileIdx++)
                 {
-                    var fileName = allFiles[fileIdx];
-
-                    var relativePath = Path.GetRelativePath(inputPath, fileName).Replace(@"\", "/");
+                    var fileInfo = new FileInfo(allFiles[fileIdx]);
+                    var relativePath = Path.GetRelativePath(inputPath, allFiles[fileIdx]);
                     var excisionMode = EExcisionMode.ServerOnlyScopes;
 
                     // Should we full excise this file?
+                    var relativePathRegex = relativePath.Replace(@"\", "/");
                     foreach (var fullExciseRegex in _fullyExciseRegexes)
                     {
-                        if (fullExciseRegex.IsMatch(relativePath))
+                        if (fullExciseRegex.IsMatch(relativePathRegex))
                         {
                             excisionMode = EExcisionMode.Full;
                             break;
@@ -97,7 +97,7 @@ namespace ServerCodeExciser
                         // Okay, then maybe we should be only excising functions..?
                         foreach (var allFunctionExciseRegex in _functionExciseRegexes)
                         {
-                            if (allFunctionExciseRegex.IsMatch(relativePath))
+                            if (allFunctionExciseRegex.IsMatch(relativePathRegex))
                             {
                                 excisionMode = EExcisionMode.AllFunctions;
                                 break;
@@ -109,18 +109,19 @@ namespace ServerCodeExciser
                     {
                         var stats = new ExcisionStats();
                         var stopwatch = Stopwatch.StartNew();
-                        var ret = ProcessCodeFile(fileName, inputPath, excisionMode, excisionLanguage, ref stats);
+                        var outputPath = (!string.IsNullOrEmpty(_parameters.OutputPath)) ? Path.Combine(_parameters.OutputPath, relativePath) : fileInfo.FullName;
+                        var ret = ProcessCodeFile(fileInfo, outputPath, excisionMode, excisionLanguage, ref stats);
                         stopwatch.Stop();
 
                         if (stats.CharactersExcised > 0)
                         {
                             System.Diagnostics.Debug.Assert(stats.TotalNrCharacters > 0, "Something is terribly wrong. We have excised characters, but no total characters..?");
                             var excisionRatio = (float)stats.CharactersExcised / (float)stats.TotalNrCharacters * 100.0f;
-                            Console.WriteLine($"[{fileIdx + 1}/{allFiles.Length}] Excised {excisionRatio:0.00}% of server only code (took {stopwatch.Elapsed.TotalMilliseconds:0.0}ms): {fileName}");
+                            Console.WriteLine($"[{fileIdx + 1}/{allFiles.Length}] Excised {excisionRatio:0.00}% of server only code (took {stopwatch.Elapsed.TotalMilliseconds:0.0}ms): {fileInfo.FullName}");
                         }
                         else
                         {
-                            Console.WriteLine($"[{fileIdx + 1}/{allFiles.Length}] No action required (took {stopwatch.Elapsed.TotalMilliseconds:0.0}ms): {fileName}");
+                            Console.WriteLine($"[{fileIdx + 1}/{allFiles.Length}] No action required (took {stopwatch.Elapsed.TotalMilliseconds:0.0}ms): {fileInfo.FullName}");
                         }
 
                         globalStats.CharactersExcised += stats.CharactersExcised;
@@ -128,7 +129,7 @@ namespace ServerCodeExciser
                     }
                     catch (Exception)
                     {
-                        Console.Error.WriteLine($"[{fileIdx + 1}/{allFiles.Length}] Failed to parse: {fileName}");
+                        Console.Error.WriteLine($"[{fileIdx + 1}/{allFiles.Length}] Failed to parse: {fileInfo.FullName}");
                         throw;
                     }
                 }
@@ -178,10 +179,14 @@ namespace ServerCodeExciser
             return EExciserReturnValues.Success;
         }
 
-        private EExciserReturnValues ProcessCodeFile(string fileName, string inputPath, EExcisionMode excisionMode, IServerCodeExcisionLanguage excisionLanguage, ref ExcisionStats stats)
+        internal EExciserReturnValues ProcessCodeFile(FileInfo inputFile, string outputFile, EExcisionMode excisionMode, IServerCodeExcisionLanguage excisionLanguage, ref ExcisionStats stats)
         {
-            var relativePath = Path.GetRelativePath(inputPath, fileName);
-            var script = File.ReadAllText(fileName);
+            using StreamReader reader = inputFile.OpenText();
+            return ProcessCodeFile(reader.ReadToEnd(), outputFile, excisionMode, excisionLanguage, ref stats);
+        }
+
+        internal EExciserReturnValues ProcessCodeFile(string script, string outputFile, EExcisionMode excisionMode, IServerCodeExcisionLanguage excisionLanguage, ref ExcisionStats stats)
+        {
             stats.TotalNrCharacters = script.Length;
 
             // Setup parsing and output.
@@ -237,8 +242,8 @@ namespace ServerCodeExciser
                 }
 
                 // Determine if there are any existing preprocessor server-code exclusions in the source file.
-                var nodes = PreprocessorParser.Parse(commonTokenStream);
-                var detectedPreprocessorServerOnlyScopes = FindScopesForSymbol(nodes, excisionLanguage.ServerScopeStartString);
+                var preprocessorNodes = PreprocessorParser.Parse(commonTokenStream);
+                var detectedPreprocessorServerOnlyScopes = FindScopesForSymbol(preprocessorNodes, scope => scope.Directive.Contains(excisionLanguage.ServerScopeStartString, StringComparison.Ordinal));
 
                 // Process scopes we've evaluated must be server only.
                 foreach (ServerOnlyScopeData currentScope in visitor.DetectedServerOnlyScopes)
@@ -248,153 +253,83 @@ namespace ServerCodeExciser
                         continue;
                     }
 
-                    int ScanToStartOfLine(int index)
-                    {
-                        while (index > 0)
-                        {
-                            if (script[index - 1] == '\n')
-                            {
-                                return index;
-                            }
-                            index--;
-                        }
-                        return index;
-                    }
-
-                    int TrimWhitespace2(int index)
-                    {
-                        while (index > 0)
-                        {
-                            switch (script[index - 1])
-                            {
-                                case ' ':
-                                case '\t':
-                                    break;
-                                default:
-                                    return index;
-                            }
-
-                            index--;
-                        }
-                        return index;
-                    }
-
-                    int ScanToNextLineBreak(int index)
-                    {
-                        while (index < script.Length)
-                        {
-                            if (script[index] == '\n')
-                            {
-                                return index + 1;
-                            }
-                            index++;
-                        }
-                        return index;
-                    }
-
-                    const bool markers = false;
-
-                    if (markers)
-                    {
-                        serverCodeInjections.Add(new KeyValuePair<int, string>(currentScope.Span.StartIndex + 1, "<<!!>>"));
-                    }
-
-                    /*var startIndex = script[currentScope.Span.StartIndex] switch
-                    {
-                        '{' => ScanToNextLineBreak(currentScope.Span.StartIndex + 1),
-                        ';' => ScanToNextLineBreak(currentScope.Span.StartIndex + 1),
-                        ')' => ScanToNextLineBreak(currentScope.Span.StartIndex + 1),
-                        _ => currentScope.Span.StartIndex,
-                    };*/
-
                     int startIndex = currentScope.Span.StartIndex + 1;
 
-                    var endIndex = script[currentScope.Span.EndIndex] switch
+                    int endIndex = script[currentScope.Span.EndIndex] switch
                     {
-                        '}' => ScanToStartOfLine(currentScope.Span.EndIndex),
-                        ';' => ScanToNextLineBreak(currentScope.Span.EndIndex),
-                        _ => currentScope.Span.EndIndex,
+                        '}' => currentScope.Span.EndIndex - 1, // scope is closed prior to '}'
+                        ';' => currentScope.Span.EndIndex + 1, // treat ';' as part of the scope
+                        _ => throw new NotImplementedException(),
                     };
 
                     // Skip if there's already a server-code exclusion for the scope. (We don't want have duplicate guards.)
-                    var (StartIndex, StopIndex) = TrimWhitespace(script, startIndex, endIndex);
-                    if (detectedPreprocessorServerOnlyScopes.Any(x => StartIndex >= x.Span.StartIndex && StopIndex <= x.Span.EndIndex))
+                    var (StartIndex, EndIndex) = TrimWhitespace(script, startIndex, endIndex);
+                    if (detectedPreprocessorServerOnlyScopes.Any(x => StartIndex >= x.Span.StartIndex && EndIndex <= x.Span.EndIndex))
                     {
                         continue; // We're inside an existing scope.
                     }
 
-                    //var startIndex = ScanToNextLineBreak(currentScope.Span.StartIndex + 1);
+                    const bool DebugMarkers = false;
+                    var builder = new StringBuilder();
+
                     var startText = $"{excisionLanguage.ServerScopeStartString}\r\n";
+                    builder.Append(DebugMarkers ? "<START>" : "");
+                    builder.Append(startText);
+                    builder.Append(DebugMarkers ? "</START>" : "");
+
                     if (startText.StartsWith("#"))
                     {
-                        startIndex = ScanToNextLineBreak(currentScope.Span.StartIndex + 1);
+                        startIndex = ScanToNextLineBreak(script, startIndex);
                     }
-
-                    var builder = new StringBuilder();
-                    builder.Append(markers ? "<START>" : "");
-                    builder.Append(startText);
-                    builder.Append(markers ? "</START>" : "");
                     serverCodeInjections.Add(new KeyValuePair<int, string>(startIndex, builder.ToString()));
 
-                    /*if (!string.IsNullOrEmpty(currentScope.Opt_ElseContent))
-                    {
-                        serverCodeInjections.Add(new KeyValuePair<int, string>(currentScope.Opt_ElseIndex, currentScope.Opt_ElseContent));
-                    }*/
-
-
-                    //string elseText = "";
-
-                    //var endIndex = ScanToStartOfLine(currentScope.Span.EndIndex);
-                    //var endIndex = TrimWhitespace2(currentScope.Span.EndIndex + 1);
-                    //string endText = $"<ELSE>{currentScope.Opt_ElseContent}</ELSE>{excisionLanguage.ServerScopeEndString}<END>\r\n";// excisionLanguage.ServerScopeEndString;
-                    //endText += "\r\n" + new string('\t', currentScope.Span.End.Column);
-
-                    //serverCodeInjections.Add(new KeyValuePair<int, string>(endIndex, endText));
-
-                    var endText = $"{excisionLanguage.ServerScopeEndString}\r\n";
-                    if (endText.StartsWith("#"))
-                    {
-                        endIndex = ScanToStartOfLine(endIndex);
-                    }
-
-                    builder = new StringBuilder();
+                    builder.Clear();
 
                     if (!string.IsNullOrEmpty(currentScope.Opt_ElseContent))
                     {
-                        builder.Append(markers ? "<ELSE>" : "");
+                        builder.Append(DebugMarkers ? "<ELSE>" : "");
                         builder.Append(currentScope.Opt_ElseContent);
-                        builder.Append(markers ? "</ELSE>" : "");
+                        builder.Append(DebugMarkers ? "</ELSE>" : "");
                     }
 
-                    builder.Append(markers ? "<END>" : "");
+                    var endText = $"{excisionLanguage.ServerScopeEndString}\r\n";
+                    builder.Append(DebugMarkers ? "<END>" : "");
                     builder.Append(endText);
-                    builder.Append(markers ? "</END>" : "");
+                    builder.Append(DebugMarkers ? "</END>" : "");
 
+                    if (endText.StartsWith("#"))
+                    {
+                        if (!script[startIndex..endIndex].Contains('\n'))
+                        {
+                            endIndex = ScanToNextLineBreak(script, endIndex); // one liner?
+                        }
+                        else
+                        {
+                            endIndex = ScanToStartOfLine(script, endIndex);
+                        }
+                    }
                     serverCodeInjections.Add(new KeyValuePair<int, string>(endIndex, builder.ToString()));
 
                     stats.CharactersExcised += currentScope.Span.EndIndex - currentScope.Span.StartIndex;
                 }
 
                 // Next we must add dummy reference variables if they exist.
-                foreach (KeyValuePair<int, HashSet<string>> dummyRefDataPair in visitor.ClassStartIdxDummyReferenceData)
+                // If there is already a block of dummy reference variables we skip adding new ones, there is no guarantee we are adding the right code.
+                var dummyVarScope = "#ifndef " + excisionLanguage.ServerPrecompilerSymbol;
+                if (!FindScopesForSymbol(preprocessorNodes, scope => scope.Directive.Contains(dummyVarScope, StringComparison.Ordinal)).Any())
                 {
-                    var dummyRefDataBlockString = new StringBuilder();
-                    var dummyVarScope = "#ifndef " + excisionLanguage.ServerPrecompilerSymbol;
-                    dummyRefDataBlockString.Append(dummyVarScope);
-                    foreach (var dummyVarDef in dummyRefDataPair.Value)
+                    foreach (KeyValuePair<int, HashSet<string>> dummyRefDataPair in visitor.ClassStartIdxDummyReferenceData)
                     {
-                        dummyRefDataBlockString.Append("\r\n\t" + dummyVarDef);
+                        var dummyRefDataBlockString = new StringBuilder(dummyVarScope);
+                        foreach (var dummyVarDef in dummyRefDataPair.Value)
+                        {
+                            dummyRefDataBlockString.Append("\r\n\t" + dummyVarDef);
+                        }
+
+                        dummyRefDataBlockString.Append("\r\n" + excisionLanguage.ServerScopeEndString + "\r\n\r\n");
+
+                        serverCodeInjections.Add(new KeyValuePair<int, string>(dummyRefDataPair.Key, dummyRefDataBlockString.ToString()));
                     }
-
-                    dummyRefDataBlockString.Append("\r\n" + excisionLanguage.ServerScopeEndString + "\r\n\r\n");
-
-                    // If there is already a block of dummy reference variables we skip adding new ones, there is no guarantee we are adding the right code.
-                    if (InjectedMacroAlreadyExistsAtLocation(script, dummyRefDataPair.Key, false, true, dummyVarScope + "\r\n"))
-                    {
-                        continue;
-                    }
-
-                    serverCodeInjections.Add(new KeyValuePair<int, string>(dummyRefDataPair.Key, dummyRefDataBlockString.ToString()));
                 }
             }
 
@@ -416,24 +351,23 @@ namespace ServerCodeExciser
 
             if (fileHasChanged || _parameters.ShouldOutputUntouchedFiles)
             {
-                var outputPath = (!string.IsNullOrEmpty(_parameters.OutputPath)) ? Path.Combine(_parameters.OutputPath, relativePath) : fileName;
-                var outputDirectoryPath = Path.GetDirectoryName(outputPath)!;
-                if (!Directory.Exists(outputDirectoryPath))
-                {
-                    Directory.CreateDirectory(outputDirectoryPath);
-                }
-
                 try
                 {
                     if (!_parameters.IsDryRun)
                     {
-                        if (File.Exists(outputPath))
+                        var outputDirectoryPath = Path.GetDirectoryName(outputFile)!;
+                        if (!Directory.Exists(outputDirectoryPath))
                         {
-                            // If the file exists, we might have to clear read-only from p4 etc. This is common for in-place excision.
-                            File.SetAttributes(outputPath, FileAttributes.Normal);
+                            Directory.CreateDirectory(outputDirectoryPath);
                         }
 
-                        File.WriteAllText(outputPath, answerText.ToString());
+                        if (File.Exists(outputFile))
+                        {
+                            // If the file exists, we might have to clear read-only from p4 etc. This is common for in-place excision.
+                            File.SetAttributes(outputFile, FileAttributes.Normal);
+                        }
+
+                        File.WriteAllText(outputFile, answerText.ToString());
                     }
                 }
                 catch (Exception e)
@@ -451,10 +385,40 @@ namespace ServerCodeExciser
             return c == ' ' || c == '\t' || c == '\r' || c == '\n';
         }
 
+        private static int ScanToStartOfLine(ReadOnlySpan<char> script, int index)
+        {
+            if (script[index] == '\n')
+            {
+                return index;
+            }
+            while (index > 0)
+            {
+                if (script[index - 1] == '\n')
+                {
+                    return index;
+                }
+                index--;
+            }
+            return index;
+        }
+
+        private static int ScanToNextLineBreak(ReadOnlySpan<char> script, int index)
+        {
+            while (index < script.Length)
+            {
+                if (script[index] == '\n')
+                {
+                    return index + 1;
+                }
+                index++;
+            }
+            return index;
+        }
+
         /// <summary>
         /// Resize a scope range by excluding whitespace characters.
         /// </summary>
-        private static (int StartIndex, int StopIndex) TrimWhitespace(string script, int startIndex, int stopIndex)
+        private static (int StartIndex, int StopIndex) TrimWhitespace(ReadOnlySpan<char> script, int startIndex, int stopIndex)
         {
             while (IsWhitespace(script[startIndex]))
             {
@@ -469,61 +433,22 @@ namespace ServerCodeExciser
             return (startIndex, stopIndex);
         }
 
-        public static List<PreprocessorNode> FindScopesForSymbol(List<PreprocessorNode> scopes, string symbol)
+        public static List<PreprocessorScope> FindScopesForSymbol(List<PreprocessorScope> scopes, Predicate<PreprocessorScope> predicate)
         {
-            var result = new List<PreprocessorNode>();
-            FindScopesForSymbolRecursive(scopes, symbol, result);
+            var result = new List<PreprocessorScope>();
+            FindScopesForSymbolRecursive(scopes, predicate, result);
             return result;
         }
 
-        private static void FindScopesForSymbolRecursive(List<PreprocessorNode> scopes, string symbol, List<PreprocessorNode> result)
+        private static void FindScopesForSymbolRecursive(List<PreprocessorScope> scopes, Predicate<PreprocessorScope> predicate, List<PreprocessorScope> result)
         {
             foreach (var scope in scopes)
             {
-                if (scope.Directive.Contains(symbol, StringComparison.Ordinal))
+                if (predicate(scope))
                 {
                     result.Add(scope);
                 }
-                FindScopesForSymbolRecursive(scope.Children, symbol, result);
-            }
-        }
-
-
-        private bool InjectedMacroAlreadyExistsAtLocation(string script, int index, bool lookAhead, bool ignoreWhitespace, string macro)
-        {
-            if (lookAhead)
-            {
-                if (ignoreWhitespace)
-                {
-                    while (index < script.Length && IsWhitespace(script[index]))
-                    {
-                        index++;
-                    }
-                }
-
-                if (script.Length - index < macro.Length)
-                {
-                    return false;
-                }
-
-                return script[index..(index + macro.Length)].Equals(macro);
-            }
-            else
-            {
-                if (ignoreWhitespace)
-                {
-                    while (index > 0 && IsWhitespace(script[index]))
-                    {
-                        index--;
-                    }
-                }
-
-                if (index - macro.Length < 0)
-                {
-                    return false;
-                }
-
-                return script[(index - macro.Length)..index].Equals(macro);
+                FindScopesForSymbolRecursive(scope.Children, predicate, result);
             }
         }
     }
