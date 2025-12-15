@@ -87,6 +87,12 @@ Bool: 'bool';
 
 /* UnrealAngelscript */
 
+NoDiscard: 'no_discard';
+
+AllowDiscard: 'allow_discard';
+
+AcceptTemporaryThis: 'accept_temporary_this';
+
 UClass: 'UCLASS';
 
 UStruct: 'USTRUCT';
@@ -108,8 +114,6 @@ Check: 'check';
 /*Keywords*/
 
 Auto: 'auto';
-
-AcceptTemporaryThis: 'accept_temporary_this';
 
 Access: 'access';
 
@@ -152,8 +156,6 @@ If: 'if';
 Inherited: 'inherited';
 
 Namespace: 'namespace';
-
-NoDiscard: 'no_discard';
 
 Nullptr: 'nullptr';
 

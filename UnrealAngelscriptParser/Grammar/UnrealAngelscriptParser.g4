@@ -58,7 +58,7 @@ ufunction:
 
 moduleImport:
 	Import Identifier (Dot Identifier)* Semi
-	| Import declSpecifierSeq? declarator postFuncSpecifierSeq? From StringLiteral Semi
+	| Import declSpecifierSeq? declarator virtualSpecifierSeq? From StringLiteral Semi
 	;
 
 asGeneric:
@@ -451,7 +451,7 @@ parameterDeclaration:
 	declSpecifierSeq Identifier? (Assign initializerClause)?;
 
 functionDefinition:
-	ufunction? (accessSpecifier | accessPattern)? Mixin? declSpecifierSeq? declarator postFuncSpecifierSeq? functionBody;
+	ufunction? (accessSpecifier | accessPattern)? Mixin? declSpecifierSeq? declarator virtualSpecifierSeq? angelscriptModifierSeq? functionBody;
 
 functionBody:
 	compoundStatement
@@ -514,15 +514,24 @@ memberDeclaratorList:
 
 memberDeclarator:
 	declarator (
-		postFuncSpecifierSeq?
+		virtualSpecifierSeq? angelscriptModifierSeq?
 		| braceOrEqualInitializer?
 	)
 	| Identifier? Colon constantExpression
 	| Identifier;
 
-postFuncSpecifierSeq: virtualSpecifier+;
+virtualSpecifierSeq: virtualSpecifier+;
 
-virtualSpecifier: Override | Final | Property;
+virtualSpecifier
+    : Override
+    | Final
+    | Property // Angelscript
+    ;
+
+angelscriptModifierSeq: angelscriptModifier+;
+
+angelscriptModifier:
+	NoDiscard | AllowDiscard;
 
 /*Derived classes*/
 
