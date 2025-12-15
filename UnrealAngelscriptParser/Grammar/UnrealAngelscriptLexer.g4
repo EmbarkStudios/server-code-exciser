@@ -109,6 +109,10 @@ Check: 'check';
 
 Auto: 'auto';
 
+NoDiscard: 'no_discard';
+
+AllowDiscard: 'allow_discard';
+
 AcceptTemporaryThis: 'accept_temporary_this';
 
 Access: 'access';
@@ -152,8 +156,6 @@ If: 'if';
 Inherited: 'inherited';
 
 Namespace: 'namespace';
-
-NoDiscard: 'no_discard';
 
 Nullptr: 'nullptr';
 
