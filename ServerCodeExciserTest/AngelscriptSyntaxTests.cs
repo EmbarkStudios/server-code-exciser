@@ -1,0 +1,81 @@
+﻿using System;
+using System.IO;
+using Antlr4.Runtime;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using UnrealAngelscriptServerCodeExcision;
+
+namespace ServerCodeExciser.Tests
+{
+    [TestClass]
+    public class AngelscriptSyntaxTests
+    {
+        private sealed class ThrowingErrorListener : BaseErrorListener
+        {
+            public override void SyntaxError(TextWriter output, IRecognizer recognizer, IToken offendingSymbol, int line, int charPositionInLine, string msg, RecognitionException e)
+            {
+                throw new InvalidOperationException($"line {line}:{charPositionInLine} {msg}");
+            }
+        }
+
+        [TestMethod]
+        [DataRow("mynamespace")]
+        [DataRow("Nested::mynamespace")]
+        public void Namespace(string @namespace)
+        {
+            var script = $"namespace {@namespace}\r\n{{\r\n}}\r\n";
+            var lexer = new UnrealAngelscriptLexer(new AntlrInputStream(script));
+            var tokenStream = new CommonTokenStream(lexer);
+            var parser = new UnrealAngelscriptParser(tokenStream);
+            parser.RemoveErrorListeners();
+            parser.AddErrorListener(new ThrowingErrorListener());
+            new UnrealAngelscriptSimpleVisitor(script).VisitChildren(parser.script());
+        }
+
+        [TestMethod]
+        [DataRow("")]
+        [DataRow("final")]
+        [DataRow("override")]
+        [DataRow("no_discard")] // UnrealAngelscript
+        [DataRow("allow_discard")] // UnrealAngelscript
+        [DataRow("accept_temporary_this")] // UnrealAngelscript
+        public void FunctionModifier(string modifier)
+        {
+            var script = $"protected bool CanActivate_Client() {modifier}\r\n{{\r\nreturn true;\r\n}}";
+            var lexer = new UnrealAngelscriptLexer(new AntlrInputStream(script));
+            var tokenStream = new CommonTokenStream(lexer);
+            var parser = new UnrealAngelscriptParser(tokenStream);
+            parser.RemoveErrorListeners();
+            parser.AddErrorListener(new ThrowingErrorListener());
+            new UnrealAngelscriptSimpleVisitor(script).VisitChildren(parser.script());
+        }
+
+        [TestMethod]
+        [DataRow("int", "0")]
+        [DataRow("int8", "0")]
+        [DataRow("int16", "0")]
+        [DataRow("int32", "0")]
+        [DataRow("int64", "0")]
+        [DataRow("uint", "0")]
+        [DataRow("uint8", "0")]
+        [DataRow("uint16", "0")]
+        [DataRow("uint32", "0")]
+        [DataRow("uint64", "0")]
+        [DataRow("float", "0.0f")]
+        [DataRow("float32", "0.0f")]
+        [DataRow("float64", "0.0")]
+        [DataRow("doublt", "0.0")]
+        [DataRow("bool", "false")]
+        [DataRow("FName", "n\"MyName\"")] // https://angelscript.hazelight.se/scripting/fname-literals/
+        [DataRow("string", "f\"Formatted String: {L:0.1f}\\u00B0\"")] // https://angelscript.hazelight.se/scripting/format-strings/
+        public void DataType(string type, string value)
+        {
+            var script = $"{type} VAR = {value};";
+            var lexer = new UnrealAngelscriptLexer(new AntlrInputStream(script));
+            var tokenStream = new CommonTokenStream(lexer);
+            var parser = new UnrealAngelscriptParser(tokenStream);
+            parser.RemoveErrorListeners();
+            parser.AddErrorListener(new ThrowingErrorListener());
+            new UnrealAngelscriptSimpleVisitor(script).VisitChildren(parser.script());
+        }
+    }
+}
