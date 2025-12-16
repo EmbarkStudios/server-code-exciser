@@ -456,7 +456,7 @@ parameterDeclaration:
 	declSpecifierSeq Identifier? (Assign initializerClause)?;
 
 functionDefinition:
-	ufunction? (accessSpecifier | accessPattern)? Mixin? declSpecifierSeq? declarator virtualSpecifierSeq? angelscriptModifierSeq? functionBody;
+	ufunction? (accessSpecifier | accessPattern)? Mixin? declSpecifierSeq? declarator virtualSpecifierSeq? angelscriptDiscardModifier? functionBody;
 
 functionBody:
 	compoundStatement
@@ -523,7 +523,7 @@ memberDeclaratorList:
 
 memberDeclarator:
 	declarator (
-		virtualSpecifierSeq? angelscriptModifierSeq?
+		virtualSpecifierSeq? angelscriptDiscardModifier?
 		| braceOrEqualInitializer?
 	)
 	| Identifier? Colon constantExpression
@@ -537,9 +537,7 @@ virtualSpecifier
     | Property // Angelscript
     ;
 
-angelscriptModifierSeq: angelscriptModifier+;
-
-angelscriptModifier:
+angelscriptDiscardModifier:
 	NoDiscard | AllowDiscard;
 
 /*Derived classes*/

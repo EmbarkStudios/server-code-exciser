@@ -38,6 +38,7 @@ namespace ServerCodeExciser.Tests
         [DataRow("no_discard")] // UnrealAngelscript
         [DataRow("allow_discard")] // UnrealAngelscript
         [DataRow("accept_temporary_this")] // UnrealAngelscript
+        [DataRow("const allow_discard")] // UnrealAngelscript
         public void FunctionModifier(string modifier)
         {
             ParseScript($"bool Func() {modifier}\r\n{{\r\nreturn true;\r\n}}");
