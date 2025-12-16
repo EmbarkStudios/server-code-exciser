@@ -241,8 +241,12 @@ namespace ServerCodeExciser
                 }
 
                 // Determine if there are any existing preprocessor server-code exclusions in the source file.
-                var detectedPreprocessorServerOnlyScopes = FindPreprocessorGuards(commonTokenStream)
-                    .Where(x => x.Directive.Contains(excisionLanguage.ServerScopeStartString, StringComparison.Ordinal));
+                var preprocessorScopes = PreprocessorParser.Parse(commonTokenStream);
+                var detectedPreprocessorServerOnlyScopes = new List<PreprocessorScope>();
+                FindPreprocessorScopesForSymbolRecursive(
+                    preprocessorScopes,
+                    scope => scope.Directive.Contains(excisionLanguage.ServerScopeStartString, StringComparison.Ordinal),
+                    detectedPreprocessorServerOnlyScopes);
 
                 // Process scopes we've evaluated must be server only.
                 foreach (ServerOnlyScopeData currentScope in visitor.DetectedServerOnlyScopes)
@@ -253,8 +257,8 @@ namespace ServerCodeExciser
                     }
 
                     // Skip if there's already a server-code exclusion for the scope. (We don't want have duplicate guards.)
-                    var (StartIndex, StopIndex) = TrimWhitespace(script, currentScope);
-                    if (detectedPreprocessorServerOnlyScopes.Any(x => StartIndex >= x.StartIndex && StopIndex <= x.StopIndex))
+                    var (StartIndex, EndIndex) = TrimWhitespace(script, currentScope);
+                    if (detectedPreprocessorServerOnlyScopes.Any(x => StartIndex >= x.Span.StartIndex && EndIndex <= x.Span.EndIndex))
                     {
                         continue; // We're inside an existing scope.
                     }
@@ -358,57 +362,16 @@ namespace ServerCodeExciser
             return (startIndex, stopIndex);
         }
 
-        private static List<(string Directive, int StartIndex, int StopIndex)> FindPreprocessorGuards(BufferedTokenStream tokenStream)
+        private static void FindPreprocessorScopesForSymbolRecursive(List<PreprocessorScope> scopes, Predicate<PreprocessorScope> predicate, List<PreprocessorScope> result)
         {
-            var preprocessorDirectives = tokenStream
-                .GetTokens()
-                .Where(t => t.Channel == UnrealAngelscriptLexer.PREPROCESSOR_CHANNEL)
-                .Where(t => t.Type == UnrealAngelscriptLexer.Directive)
-                .ToList();
-
-            var preprocessorGuards = new List<(string Directive, int StartIndex, int StopIndex)>();
-            var ifStack = new Stack<IToken>();
-
-            foreach (var token in preprocessorDirectives)
+            foreach (var scope in scopes)
             {
-                switch (token.Text)
+                if (predicate(scope))
                 {
-                    case var t when t.StartsWith("#if", StringComparison.Ordinal): // #if, #ifdef, #ifndef
-                        ifStack.Push(token);
-                        break;
-
-                    case var t when t.StartsWith("#elif", StringComparison.Ordinal): // #elif, #elifdef, #elifndef
-                        {
-                            if (ifStack.TryPop(out var removed))
-                            {
-                                preprocessorGuards.Add((removed.Text, removed.StartIndex, token.StopIndex));
-                            }
-                            ifStack.Push(token);
-                        }
-                        break;
-
-                    case var t when t.StartsWith("#else", StringComparison.Ordinal):
-                        {
-                            if (ifStack.TryPop(out var removed))
-                            {
-                                preprocessorGuards.Add((removed.Text, removed.StartIndex, token.StopIndex));
-                            }
-                            ifStack.Push(token);
-                        }
-                        break;
-
-                    case var t when t.StartsWith("#endif", StringComparison.Ordinal):
-                        {
-                            if (ifStack.TryPop(out var removed))
-                            {
-                                preprocessorGuards.Add((removed.Text, removed.StartIndex, token.StopIndex));
-                            }
-                        }
-                        break;
+                    result.Add(scope);
                 }
+                FindPreprocessorScopesForSymbolRecursive(scope.Children, predicate, result);
             }
-
-            return preprocessorGuards;
         }
 
         private bool InjectedMacroAlreadyExistsAtLocation(StringBuilder script, int index, bool lookAhead, bool ignoreWhitespace, string macro)
