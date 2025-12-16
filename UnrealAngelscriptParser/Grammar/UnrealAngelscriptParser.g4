@@ -89,6 +89,7 @@ qualifiedId: nestedNameSpecifier unqualifiedId;
 nestedNameSpecifier:
 	(theTypeName | namespaceName | decltypeSpecifier)? Doublecolon
 	| nestedNameSpecifier Identifier Doublecolon;
+
 lambdaExpression:
 	lambdaIntroducer lambdaDeclarator? compoundStatement;
 
@@ -217,6 +218,7 @@ assignmentOperator:
 expression: assignmentExpression (Comma assignmentExpression)*;
 
 constantExpression: conditionalExpression;
+
 /*Statements*/
 
 statement:
@@ -468,7 +470,11 @@ braceOrEqualInitializer:
 	Assign initializerClause
 	| bracedInitList;
 
-initializerClause: assignmentExpression | bracedInitList;
+// Angelscript supports C#-like named arguments.
+// https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/named-and-optional-arguments
+initializerClause:
+    (Identifier Colon)? assignmentExpression
+    | bracedInitList;
 
 initializerList:
 	initializerClause (Comma initializerClause)* Comma?; // I *really* don't like that trailing commas are a thing in AS...

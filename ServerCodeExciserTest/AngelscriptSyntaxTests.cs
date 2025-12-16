@@ -32,6 +32,18 @@ namespace ServerCodeExciser.Tests
         }
 
         [TestMethod]
+        public void NamedArgumentsFunctionCall()
+        {
+            var script = "void Func(bool Arg1 = false, int Arg2 = 0) {}\r\nvoid main() { Func(Arg2: 1, Arg1: true); }\r\n";
+            var lexer = new UnrealAngelscriptLexer(new AntlrInputStream(script));
+            var tokenStream = new CommonTokenStream(lexer);
+            var parser = new UnrealAngelscriptParser(tokenStream);
+            parser.RemoveErrorListeners();
+            parser.AddErrorListener(new ThrowingErrorListener());
+            new UnrealAngelscriptSimpleVisitor(script).VisitChildren(parser.script());
+        }
+
+        [TestMethod]
         [DataRow("")]
         [DataRow("final")]
         [DataRow("override")]
@@ -40,7 +52,7 @@ namespace ServerCodeExciser.Tests
         [DataRow("accept_temporary_this")] // UnrealAngelscript
         public void FunctionModifier(string modifier)
         {
-            var script = $"protected bool CanActivate_Client() {modifier}\r\n{{\r\nreturn true;\r\n}}";
+            var script = $"protected bool Func() {modifier}\r\n{{\r\nreturn true;\r\n}}";
             var lexer = new UnrealAngelscriptLexer(new AntlrInputStream(script));
             var tokenStream = new CommonTokenStream(lexer);
             var parser = new UnrealAngelscriptParser(tokenStream);
