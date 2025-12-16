@@ -394,12 +394,14 @@ namespaceName: originalNamespaceName | namespaceAlias;
 originalNamespaceName: Identifier;
 
 namespaceDefinition:
-	Namespace (Identifier | originalNamespaceName)? LeftBrace namespaceBody = declarationseq
-		? RightBrace;
+	Namespace qualifiedNamespaceName? LeftBrace namespaceBody = declarationseq? RightBrace;
 
 namespaceAlias: Identifier;
 
 namespaceAliasDefinition: Namespace Identifier Assign qualifiednamespacespecifier Semi;
+
+qualifiedNamespaceName:
+    Identifier (Doublecolon Identifier)*;
 
 qualifiednamespacespecifier: nestedNameSpecifier? namespaceName;
 
