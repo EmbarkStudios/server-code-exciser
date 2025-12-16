@@ -35,8 +35,9 @@ script:
 	declarationseq? EOF;
 
 /*Angelscript */
+
 annotationList:
-	annotation (Comma annotation)*;
+	annotation (Comma annotation)* Comma?; // trailing commas are permitted in AS
 
 annotation:
 	Identifier (Assign expression)?;
@@ -89,6 +90,7 @@ qualifiedId: nestedNameSpecifier unqualifiedId;
 nestedNameSpecifier:
 	(theTypeName | namespaceName | decltypeSpecifier)? Doublecolon
 	| nestedNameSpecifier Identifier Doublecolon;
+
 lambdaExpression:
 	lambdaIntroducer lambdaDeclarator? compoundStatement;
 
@@ -217,6 +219,7 @@ assignmentOperator:
 expression: assignmentExpression (Comma assignmentExpression)*;
 
 constantExpression: conditionalExpression;
+
 /*Statements*/
 
 statement:
@@ -394,12 +397,14 @@ namespaceName: originalNamespaceName | namespaceAlias;
 originalNamespaceName: Identifier;
 
 namespaceDefinition:
-	Namespace (Identifier | originalNamespaceName)? LeftBrace namespaceBody = declarationseq
-		? RightBrace;
+	Namespace qualifiedNamespaceName? LeftBrace namespaceBody = declarationseq? RightBrace;
 
 namespaceAlias: Identifier;
 
 namespaceAliasDefinition: Namespace Identifier Assign qualifiednamespacespecifier Semi;
+
+qualifiedNamespaceName:
+    Identifier (Doublecolon Identifier)*;
 
 qualifiednamespacespecifier: nestedNameSpecifier? namespaceName;
 
@@ -451,7 +456,7 @@ parameterDeclaration:
 	declSpecifierSeq Identifier? (Assign initializerClause)?;
 
 functionDefinition:
-	ufunction? (accessSpecifier | accessPattern)? Mixin? declSpecifierSeq? declarator virtualSpecifierSeq? angelscriptModifierSeq? functionBody;
+	ufunction? (accessSpecifier | accessPattern)? Mixin? declSpecifierSeq? declarator virtualSpecifierSeq? angelscriptDiscardModifier? functionBody;
 
 functionBody:
 	compoundStatement
@@ -466,10 +471,14 @@ braceOrEqualInitializer:
 	Assign initializerClause
 	| bracedInitList;
 
-initializerClause: assignmentExpression | bracedInitList;
+// Angelscript supports C#-like named arguments.
+// https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/named-and-optional-arguments
+initializerClause:
+    (Identifier Colon)? assignmentExpression
+    | bracedInitList;
 
 initializerList:
-	initializerClause (Comma initializerClause)* Comma?; // I *really* don't like that trailing commas are a thing in AS...
+	initializerClause (Comma initializerClause)* Comma?; // trailing commas are permitted in AS
 
 bracedInitList: (LeftBrace|LeftBracket) (initializerList Comma?)? (RightBrace|RightBracket);
 
@@ -514,7 +523,7 @@ memberDeclaratorList:
 
 memberDeclarator:
 	declarator (
-		virtualSpecifierSeq? angelscriptModifierSeq?
+		virtualSpecifierSeq? angelscriptDiscardModifier?
 		| braceOrEqualInitializer?
 	)
 	| Identifier? Colon constantExpression
@@ -522,12 +531,14 @@ memberDeclarator:
 
 virtualSpecifierSeq: virtualSpecifier+;
 
-virtualSpecifier: Override | Final | Property;
+virtualSpecifier
+    : Override
+    | Final
+    | Property // Angelscript
+    ;
 
-angelscriptModifier:
-	NoDiscard | AllowDiscard | AcceptTemporaryThis;
-
-angelscriptModifierSeq: angelscriptModifier+;
+angelscriptDiscardModifier:
+	NoDiscard | AllowDiscard;
 
 /*Derived classes*/
 

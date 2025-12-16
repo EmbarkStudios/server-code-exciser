@@ -1,10 +1,10 @@
-using Antlr4.Runtime;
+﻿using Antlr4.Runtime;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ServerCodeExciser.Tests
 {
     [TestClass]
-    public class PreprocessorTests
+    public class PreprocessorParserTests
     {
         [TestMethod]
         public void ConditionalBranchTest()

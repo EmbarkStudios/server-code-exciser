@@ -242,8 +242,12 @@ namespace ServerCodeExciser
                 }
 
                 // Determine if there are any existing preprocessor server-code exclusions in the source file.
-                var preprocessorNodes = PreprocessorParser.Parse(commonTokenStream);
-                var detectedPreprocessorServerOnlyScopes = FindScopesForSymbol(preprocessorNodes, scope => scope.Directive.Contains(excisionLanguage.ServerScopeStartString, StringComparison.Ordinal));
+                var preprocessorScopes = PreprocessorParser.Parse(commonTokenStream);
+                var detectedPreprocessorServerOnlyScopes = new List<PreprocessorScope>();
+                FindPreprocessorScopesForSymbolRecursive(
+                    preprocessorScopes,
+                    scope => scope.Directive.Contains(excisionLanguage.ServerScopeStartString, StringComparison.Ordinal),
+                    detectedPreprocessorServerOnlyScopes);
 
                 // Process scopes we've evaluated must be server only.
                 foreach (ServerOnlyScopeData currentScope in visitor.DetectedServerOnlyScopes)
@@ -316,7 +320,13 @@ namespace ServerCodeExciser
                 // Next we must add dummy reference variables if they exist.
                 // If there is already a block of dummy reference variables we skip adding new ones, there is no guarantee we are adding the right code.
                 var dummyVarScope = "#ifndef " + excisionLanguage.ServerPrecompilerSymbol;
-                if (!FindScopesForSymbol(preprocessorNodes, scope => scope.Directive.Contains(dummyVarScope, StringComparison.Ordinal)).Any())
+                var detectedIfndefScopes = new List<PreprocessorScope>();
+                FindPreprocessorScopesForSymbolRecursive(
+                    preprocessorScopes,
+                    scope => scope.Directive.Contains(dummyVarScope, StringComparison.Ordinal),
+                    detectedIfndefScopes);
+                
+                if (!detectedIfndefScopes.Any())
                 {
                     foreach (KeyValuePair<int, HashSet<string>> dummyRefDataPair in visitor.ClassStartIdxDummyReferenceData)
                     {
@@ -433,14 +443,7 @@ namespace ServerCodeExciser
             return (startIndex, stopIndex);
         }
 
-        public static List<PreprocessorScope> FindScopesForSymbol(List<PreprocessorScope> scopes, Predicate<PreprocessorScope> predicate)
-        {
-            var result = new List<PreprocessorScope>();
-            FindScopesForSymbolRecursive(scopes, predicate, result);
-            return result;
-        }
-
-        private static void FindScopesForSymbolRecursive(List<PreprocessorScope> scopes, Predicate<PreprocessorScope> predicate, List<PreprocessorScope> result)
+        private static void FindPreprocessorScopesForSymbolRecursive(List<PreprocessorScope> scopes, Predicate<PreprocessorScope> predicate, List<PreprocessorScope> result)
         {
             foreach (var scope in scopes)
             {
@@ -448,7 +451,7 @@ namespace ServerCodeExciser
                 {
                     result.Add(scope);
                 }
-                FindScopesForSymbolRecursive(scope.Children, predicate, result);
+                FindPreprocessorScopesForSymbolRecursive(scope.Children, predicate, result);
             }
         }
     }
