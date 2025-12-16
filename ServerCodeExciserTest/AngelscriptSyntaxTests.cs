@@ -89,5 +89,37 @@ namespace ServerCodeExciser.Tests
             parser.AddErrorListener(new ThrowingErrorListener());
             new UnrealAngelscriptSimpleVisitor(script).VisitChildren(parser.script());
         }
+
+        [TestMethod]
+        [DataRow("")]
+        [DataRow("UCLASS()")]
+        [DataRow("UCLASS(Abstract)")]
+        public void UClass(string annotation)
+        {
+            var script = $"{annotation} class ClassName : BaseClass {{}};";
+            var lexer = new UnrealAngelscriptLexer(new AntlrInputStream(script));
+            var tokenStream = new CommonTokenStream(lexer);
+            var parser = new UnrealAngelscriptParser(tokenStream);
+            parser.RemoveErrorListeners();
+            parser.AddErrorListener(new ThrowingErrorListener());
+            new UnrealAngelscriptSimpleVisitor(script).VisitChildren(parser.script());
+        }
+
+        [TestMethod]
+        [DataRow("")]
+        [DataRow("UPROPERTY()")]
+        [DataRow("UPROPERTY(DefaultComponent)")]
+        [DataRow("UPROPERTY(DefaultComponent,)")]
+        [DataRow("UPROPERTY(DefaultComponent, RootComponent)")]
+        public void UProperty(string annotation)
+        {
+            var script = $"class ClassName : BaseClass\r\n{{\r\n\t{annotation}\r\nDummyType DummyProperty;\r\n}};";
+            var lexer = new UnrealAngelscriptLexer(new AntlrInputStream(script));
+            var tokenStream = new CommonTokenStream(lexer);
+            var parser = new UnrealAngelscriptParser(tokenStream);
+            parser.RemoveErrorListeners();
+            parser.AddErrorListener(new ThrowingErrorListener());
+            new UnrealAngelscriptSimpleVisitor(script).VisitChildren(parser.script());
+        }
     }
 }

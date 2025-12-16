@@ -35,8 +35,9 @@ script:
 	declarationseq? EOF;
 
 /*Angelscript */
+
 annotationList:
-	annotation (Comma annotation)*;
+	annotation (Comma annotation)* Comma?; // trailing commas are permitted in AS
 
 annotation:
 	Identifier (Assign expression)?;
@@ -477,7 +478,7 @@ initializerClause:
     | bracedInitList;
 
 initializerList:
-	initializerClause (Comma initializerClause)* Comma?; // I *really* don't like that trailing commas are a thing in AS...
+	initializerClause (Comma initializerClause)* Comma?; // trailing commas are permitted in AS
 
 bracedInitList: (LeftBrace|LeftBracket) (initializerList Comma?)? (RightBrace|RightBracket);
 
