@@ -24,7 +24,11 @@ FloatingLiteral:
 // https://angelscript.hazelight.se/scripting/format-strings/
 fragment Angelscriptstringprefix: 'n' | 'f';
 
-StringLiteral: (Encodingprefix | Angelscriptstringprefix)? (Rawstring | '"' Schar* '"');
+// Angelscript Heredoc string literals
+// https://www.angelcode.com/angelscript/sdk/docs/manual/doc_datatypes_strings.html
+fragment HeredocString: '"""' .*? '"""';
+
+StringLiteral: (Encodingprefix | Angelscriptstringprefix)? (HeredocString | Rawstring | '"' Schar* '"');
 
 BooleanLiteral: False | True;
 

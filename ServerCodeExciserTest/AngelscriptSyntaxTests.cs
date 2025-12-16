@@ -60,8 +60,9 @@ namespace ServerCodeExciser.Tests
         [DataRow("float64", "0.0")]
         [DataRow("doublt", "0.0")]
         [DataRow("bool", "false")]
-        [DataRow("FName", "n\"MyName\"")] // https://angelscript.hazelight.se/scripting/fname-literals/
-        [DataRow("string", "f\"Formatted String: {L:0.1f}\\u00B0\"")] // https://angelscript.hazelight.se/scripting/format-strings/
+        [DataRow("string", "\"\"\"\r\nmulti line string\r\n\"\"\"")] // heredoc: https://www.angelcode.com/angelscript/sdk/docs/manual/doc_datatypes_strings.html
+        [DataRow("FName", "n\"MyName\"")] // FName Literals: https://angelscript.hazelight.se/scripting/fname-literals/
+        [DataRow("string", "f\"Formatted String: {L:0.1f}\\u00B0\"")] // Formatted Strings: https://angelscript.hazelight.se/scripting/format-strings/
         public void DataType(string type, string value)
         {
             ParseScript($"{type} VAR = {value};");
