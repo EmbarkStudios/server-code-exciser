@@ -22,25 +22,13 @@ namespace ServerCodeExciser.Tests
         [DataRow("Nested::mynamespace")]
         public void Namespace(string @namespace)
         {
-            var script = $"namespace {@namespace}\r\n{{\r\n}}\r\n";
-            var lexer = new UnrealAngelscriptLexer(new AntlrInputStream(script));
-            var tokenStream = new CommonTokenStream(lexer);
-            var parser = new UnrealAngelscriptParser(tokenStream);
-            parser.RemoveErrorListeners();
-            parser.AddErrorListener(new ThrowingErrorListener());
-            new UnrealAngelscriptSimpleVisitor(script).VisitChildren(parser.script());
+            ParseScript($"namespace {@namespace}\r\n{{\r\n}}\r\n");
         }
 
         [TestMethod]
         public void NamedArgumentsFunctionCall()
         {
-            var script = "void Func(bool Arg1 = false, int Arg2 = 0) {}\r\nvoid main() { Func(Arg2: 1, Arg1: true); }\r\n";
-            var lexer = new UnrealAngelscriptLexer(new AntlrInputStream(script));
-            var tokenStream = new CommonTokenStream(lexer);
-            var parser = new UnrealAngelscriptParser(tokenStream);
-            parser.RemoveErrorListeners();
-            parser.AddErrorListener(new ThrowingErrorListener());
-            new UnrealAngelscriptSimpleVisitor(script).VisitChildren(parser.script());
+            ParseScript("void Func(bool Arg1 = false, int Arg2 = 0) {}\r\nvoid main() { Func(Arg2: 1, Arg1: true); }\r\n");
         }
 
         [TestMethod]
@@ -52,13 +40,7 @@ namespace ServerCodeExciser.Tests
         [DataRow("accept_temporary_this")] // UnrealAngelscript
         public void FunctionModifier(string modifier)
         {
-            var script = $"protected bool Func() {modifier}\r\n{{\r\nreturn true;\r\n}}";
-            var lexer = new UnrealAngelscriptLexer(new AntlrInputStream(script));
-            var tokenStream = new CommonTokenStream(lexer);
-            var parser = new UnrealAngelscriptParser(tokenStream);
-            parser.RemoveErrorListeners();
-            parser.AddErrorListener(new ThrowingErrorListener());
-            new UnrealAngelscriptSimpleVisitor(script).VisitChildren(parser.script());
+            ParseScript($"bool Func() {modifier}\r\n{{\r\nreturn true;\r\n}}");
         }
 
         [TestMethod]
@@ -81,13 +63,7 @@ namespace ServerCodeExciser.Tests
         [DataRow("string", "f\"Formatted String: {L:0.1f}\\u00B0\"")] // https://angelscript.hazelight.se/scripting/format-strings/
         public void DataType(string type, string value)
         {
-            var script = $"{type} VAR = {value};";
-            var lexer = new UnrealAngelscriptLexer(new AntlrInputStream(script));
-            var tokenStream = new CommonTokenStream(lexer);
-            var parser = new UnrealAngelscriptParser(tokenStream);
-            parser.RemoveErrorListeners();
-            parser.AddErrorListener(new ThrowingErrorListener());
-            new UnrealAngelscriptSimpleVisitor(script).VisitChildren(parser.script());
+            ParseScript($"{type} VAR = {value};");
         }
 
         [TestMethod]
@@ -96,13 +72,7 @@ namespace ServerCodeExciser.Tests
         [DataRow("UCLASS(Abstract)")]
         public void UClass(string annotation)
         {
-            var script = $"{annotation} class ClassName : BaseClass {{}};";
-            var lexer = new UnrealAngelscriptLexer(new AntlrInputStream(script));
-            var tokenStream = new CommonTokenStream(lexer);
-            var parser = new UnrealAngelscriptParser(tokenStream);
-            parser.RemoveErrorListeners();
-            parser.AddErrorListener(new ThrowingErrorListener());
-            new UnrealAngelscriptSimpleVisitor(script).VisitChildren(parser.script());
+            ParseScript($"{annotation} class ClassName : BaseClass {{}};");
         }
 
         [TestMethod]
@@ -113,7 +83,11 @@ namespace ServerCodeExciser.Tests
         [DataRow("UPROPERTY(DefaultComponent, RootComponent)")]
         public void UProperty(string annotation)
         {
-            var script = $"class ClassName : BaseClass\r\n{{\r\n\t{annotation}\r\nDummyType DummyProperty;\r\n}};";
+            ParseScript($"class ClassName : BaseClass\r\n{{\r\n\t{annotation}\r\nDummyType DummyProperty;\r\n}};");
+        }
+
+        private static void ParseScript(string script)
+        {
             var lexer = new UnrealAngelscriptLexer(new AntlrInputStream(script));
             var tokenStream = new CommonTokenStream(lexer);
             var parser = new UnrealAngelscriptParser(tokenStream);
